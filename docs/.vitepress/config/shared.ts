@@ -16,8 +16,8 @@ export const shared = defineConfig({
       'script',
       {
         defer: '',
-        dataDomain: 'jiahim.com',
-        src: 'https://analytics.gptnb.xyz/js/script.js'
+        src: 'https://analytics.xiexin.dev/script.js',
+        'data-website-id': '6af23795-63c9-4a92-8032-b0066d194e2a'
       }]
   ],
   themeConfig: {
