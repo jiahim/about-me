@@ -1,4 +1,4 @@
-import { DefaultTheme } from 'vitepress'
+import type { DefaultTheme } from 'vitepress'
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -21,24 +21,34 @@ function generateSidebarItems(dir: string): DefaultTheme.SidebarItem[] {
       if (subItems.length > 0) {
         items.push({
           text: file,
-          collapsed: false,
+          collapsed: true,
           items: subItems
         })
       }
     } else if (file.endsWith('.md') && file !== 'index.md') {
       const content = fs.readFileSync(fullPath, 'utf-8')
-      const firstLine = content.split('\n')[0].replace(/^#\s*/, '')
-      const date = file.split('.')[0]
-      const relativePath = '/' + path.relative(docsDir, dir)
+      const slug = path.basename(file, '.md')
+      const relativePath = '/' + path.relative(docsDir, dir).split(path.sep).join('/')
 
       items.push({
-        text: firstLine || date,
-        link: `${relativePath}/${date}`
+        text: getDocumentTitle(content, slug),
+        link: `${relativePath}/${slug}`
       })
     }
   })
 
   return items
+}
+
+function getDocumentTitle(content: string, fallback: string): string {
+  const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  const frontmatterTitle = frontmatter?.[1].match(/^title:\s*(.+)$/m)?.[1]
+
+  if (frontmatterTitle) {
+    return frontmatterTitle.trim().replace(/^(['"])(.*)\1$/, '$2')
+  }
+
+  return content.match(/^#\s+(.+)$/m)?.[1].trim() || fallback
 }
 
 export {
