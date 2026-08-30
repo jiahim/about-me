@@ -26,8 +26,7 @@ export const en = defineConfig({
           {
             text: 'Work Experience',
             items: generateSidebarItems(path.resolve(__dirname, '../../en/work')) as DefaultTheme.SidebarItem[]
-          },
-          { text: 'Site Stats', link: '/en/my-site' }
+          }
         ]
       }
     ],

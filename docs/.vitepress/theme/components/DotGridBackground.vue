@@ -36,14 +36,14 @@ const isMobile = ref(false)
 const config = computed(() => {
   if (isMobile.value) {
     return {
-      spacing: '30px',
-      dotSize: '1.5px',
+      spacing: '32px',
+      dotSize: '1px',
       maskRadius: '120px'
     }
   }
   return {
-    spacing: '20px',
-    dotSize: '2px',
+    spacing: '26px',
+    dotSize: '1px',
     maskRadius: '160px'
   }
 })
@@ -52,13 +52,13 @@ const config = computed(() => {
 const colors = computed(() => {
   if (isDark.value) {
     return {
-      dimDot: 'rgba(61, 61, 61, 1)',
-      brightDot: 'rgba(255, 255, 255, 1)'
+      dimDot: 'rgba(148, 163, 184, 0.2)',
+      brightDot: 'rgba(165, 180, 252, 0.8)'
     }
   }
   return {
-    dimDot: 'rgba(180, 180, 180, 0.8)',
-    brightDot: 'rgba(80, 100, 255, 1)'
+    dimDot: 'rgba(148, 163, 184, 0.34)',
+    brightDot: 'rgba(80, 100, 255, 0.76)'
   }
 })
 

@@ -6,12 +6,17 @@ export const shared = defineConfig({
   title: "Jia him",
   description: "Jia him 的个人记录",
 
+  // 英文内容仍在整理中，示例页面也不属于正式站点。
+  srcExclude: ['en/**', 'api-examples.md', 'markdown-examples.md'],
+
   // rewrites: {
   //   'zh/:rest*': ':rest*'
   // },
   cleanUrls: true,
   metaChunk: true,
   head: [
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }],
     [
       'script',
       {
@@ -41,7 +46,15 @@ export const shared = defineConfig({
     },
 
     footer: {
-      message: '非商业用途，允许转载，需注明出处',
+      message: `
+        <span class="footer-links">
+          <span class="footer-links__label">友情链接</span>
+          <a class="footer-links__link" href="https://www.any-site.com" target="_blank" rel="noopener noreferrer">网站任意门</a>
+          <span class="footer-links__divider" aria-hidden="true">·</span>
+          <a class="footer-links__link" href="https://www.openai-api-chinese.com/" target="_blank" rel="noopener noreferrer">近期在做：自动同步翻译 OpenAI API 中文文档</a>
+        </span>
+        <span class="footer-note">非商业用途，允许转载，需注明出处</span>
+      `,
       copyright: `Copyright © 2024-${new Date().getFullYear()} Jia him`
     }
   },

@@ -12,11 +12,47 @@
   background-color: transparent !important;
 }
 
+/* 图片本身没有透明通道，圆形裁切让深色模式下的底色成为有意的头像底板。 */
+.VPHero .image-src {
+  border-radius: 50%;
+  box-shadow: 0 18px 46px rgb(15 23 42 / 10%);
+}
+
+.dark .VPHero .image-src {
+  filter: brightness(0.82) saturate(0.9);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 10%), 0 20px 52px rgb(0 0 0 / 34%);
+}
+
 /* 确保 Features 区域背景透明 */
 .VPFeatures {
   position: relative;
   z-index: 2;
   background-color: transparent !important;
+}
+
+/* 四个栏目在桌面端使用 2 × 2 布局，避免卡片被挤成一排。 */
+.VPFeatures .items {
+  max-width: 960px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.VPFeatures .VPFeature {
+  border-color: color-mix(in srgb, var(--vp-c-divider) 76%, transparent);
+  box-shadow: 0 8px 24px rgb(15 23 42 / 5%);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.VPFeatures .VPFeature:hover {
+  border-color: color-mix(in srgb, var(--vp-c-brand-1) 48%, var(--vp-c-divider));
+  box-shadow: 0 14px 32px rgb(15 23 42 / 10%);
+  transform: translateY(-2px);
+}
+
+@media (min-width: 960px) {
+  .VPFeatures .item.grid-4 {
+    width: 50%;
+  }
 }
 
 /* Footer 背景透明（直接匹配，不限定在 VPHome 内） */
@@ -31,9 +67,49 @@
   background: transparent !important;
 }
 
+.VPFooter .message {
+  line-height: 1.75;
+}
+
+.VPFooter .footer-links,
+.VPFooter .footer-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.VPFooter .footer-links {
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.VPFooter .footer-links__label {
+  color: var(--vp-c-text-2);
+}
+
+.VPFooter .footer-links__link {
+  color: var(--vp-c-brand-1);
+  font-weight: 500;
+  text-decoration: none;
+  text-underline-offset: 0.2em;
+}
+
+.VPFooter .footer-links__link:hover {
+  text-decoration: underline;
+}
+
+.VPFooter .footer-links__divider {
+  color: var(--vp-c-divider);
+}
+
 /* 移动端优化：确保触摸滚动流畅 */
 @media (max-width: 768px) {
   .VPHome {
     -webkit-overflow-scrolling: touch;
+  }
+
+  .VPFeatures .VPFeature {
+    box-shadow: 0 5px 18px rgb(15 23 42 / 5%);
   }
 }

@@ -5,7 +5,10 @@ import path from 'node:path'
 export const zh = defineConfig({
   themeConfig: {
     nav: [
-      { text: '主页', link: '/' },
+      { text: '读书', link: '/zh/book/', activeMatch: '^/zh/book/' },
+      { text: '技术', link: '/zh/skill/', activeMatch: '^/zh/skill/' },
+      { text: '随笔', link: '/zh/essay/', activeMatch: '^/zh/essay/' },
+      { text: '工作', link: '/zh/work/', activeMatch: '^/zh/work/' }
     ],
     langMenuLabel: '多语言',
     returnToTopLabel: '回到顶部',
@@ -48,30 +51,25 @@ export const search: DefaultTheme.LocalSearchOptions['locales'] = {
   }
 }
 
-function getSideBar(): DefaultTheme.SidebarItem[] {
+function getSideBar(): DefaultTheme.Sidebar {
+  return {
+    '/zh/book/': createSectionSidebar('读书笔记', '/zh/book/', '../../zh/book'),
+    '/zh/skill/': createSectionSidebar('技术文章', '/zh/skill/', '../../zh/skill'),
+    '/zh/essay/': createSectionSidebar('随笔', '/zh/essay/', '../../zh/essay'),
+    '/zh/work/': createSectionSidebar('经验之谈', '/zh/work/', '../../zh/work')
+  }
+}
+
+function createSectionSidebar(
+  title: string,
+  indexLink: string,
+  relativeDir: string
+): DefaultTheme.SidebarItem[] {
   return [
     {
-      text: '目录',
-      items: [
-        {
-          text: '读书笔记',
-          items: generateSidebarItems(path.resolve(__dirname, '../../zh/book')) as DefaultTheme.SidebarItem[]
-        },
-        {
-          text: '技术文章',
-          items: generateSidebarItems(path.resolve(__dirname, '../../zh/skill')) as DefaultTheme.SidebarItem[]
-
-        },
-        {
-          text: '随笔',
-          items: generateSidebarItems(path.resolve(__dirname, '../../zh/essay')) as DefaultTheme.SidebarItem[]
-        },
-        {
-          text: '经验之谈',
-          items: generateSidebarItems(path.resolve(__dirname, '../../zh/work')) as DefaultTheme.SidebarItem[]
-        },
-        { text: '网站数据', link: '/my-site' }
-      ]
+      text: title,
+      link: indexLink,
+      items: generateSidebarItems(path.resolve(__dirname, relativeDir))
     }
   ]
 }
