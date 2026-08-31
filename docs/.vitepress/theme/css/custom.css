@@ -103,6 +103,50 @@
   color: var(--vp-c-divider);
 }
 
+/* 网站数据页使用独立的全宽布局，避免分析面板被文档正文宽度限制。 */
+.site-stats {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
+}
+
+.site-stats__header {
+  margin-bottom: 20px;
+}
+
+.site-stats__title {
+  margin: 0;
+  color: var(--vp-c-text-1);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.site-stats__description {
+  margin: 8px 0 0;
+  color: var(--vp-c-text-2);
+  line-height: 1.7;
+}
+
+.site-stats__frame {
+  display: block;
+  width: 100%;
+  height: calc(100vh - var(--vp-nav-height) - 184px);
+  height: calc(100dvh - var(--vp-nav-height) - 184px);
+  min-height: 720px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 16px;
+  background: var(--vp-c-bg-soft);
+  box-shadow: 0 16px 40px rgb(15 23 42 / 8%);
+}
+
+.dark .site-stats__frame {
+  box-shadow: 0 18px 44px rgb(0 0 0 / 28%);
+}
+
 /* 移动端优化：确保触摸滚动流畅 */
 @media (max-width: 768px) {
   .VPHome {
@@ -111,5 +155,18 @@
 
   .VPFeatures .VPFeature {
     box-shadow: 0 5px 18px rgb(15 23 42 / 5%);
+  }
+
+  .site-stats {
+    padding: 24px 12px;
+  }
+
+  .site-stats__header {
+    margin-bottom: 16px;
+  }
+
+  .site-stats__frame {
+    min-height: 680px;
+    border-radius: 12px;
   }
 }
