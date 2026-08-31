@@ -52,6 +52,8 @@ export const shared = defineConfig({
           <a class="footer-links__link" href="https://www.any-site.com" target="_blank" rel="noopener noreferrer">网站任意门</a>
           <span class="footer-links__divider" aria-hidden="true">·</span>
           <a class="footer-links__link" href="https://www.openai-api-chinese.com/" target="_blank" rel="noopener noreferrer">近期在做：自动同步翻译 OpenAI API 中文文档</a>
+          <span class="footer-links__divider" aria-hidden="true">·</span>
+          <a class="footer-links__link" href="/my-site">网站数据</a>
         </span>
         <span class="footer-note">非商业用途，允许转载，需注明出处</span>
       `,
