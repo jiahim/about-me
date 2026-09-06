@@ -1,3 +1,9 @@
+---
+title: "NPM 报错集锦"
+date: 2025-02-04
+cms: true
+---
+
 # NPM 报错集锦
 
 ## npm ERR! Cannot read properties of null (reading 'isDescendantOf')

@@ -1,3 +1,9 @@
+---
+title: "组件化中的 `patch`"
+date: 2025-05-23
+cms: true
+---
+
 # 组件化中的 `patch`
 
  原文地址： [组件化 - patch](https://ustbhuangyi.github.io/vue-analysis/v2/components/patch.html#createcomponent)

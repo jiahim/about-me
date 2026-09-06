@@ -1,3 +1,9 @@
+---
+title: "chat-bot 踩坑指南"
+date: 2025-02-07
+cms: true
+---
+
 # chat-bot 踩坑指南
 
 这里记录各种在搭建各种 chat-bot 时遇到的问题

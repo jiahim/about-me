@@ -130,3 +130,7 @@ dist
 .pnp.*
 
 docs/.vitepress/cache/
+
+# 本地设置中心的跨进程原子保存锁
+config/.site.config.lock
+config/.site.config.recovery-*.lock

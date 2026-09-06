@@ -1,3 +1,20 @@
+/* Schema v2 appearance tokens. The raw value is restricted to a validated hex color. */
+:root {
+  --site-accent-color: #3eaf7c;
+  --vp-c-brand-1: var(--site-accent-color);
+  --vp-c-brand-2: color-mix(in srgb, var(--site-accent-color) 86%, black);
+  --vp-c-brand-3: color-mix(in srgb, var(--site-accent-color) 72%, black);
+  --vp-c-brand-soft: color-mix(in srgb, var(--site-accent-color) 14%, transparent);
+}
+
+html[data-content-layout='wide'] .VPDoc .container {
+  max-width: 1600px;
+}
+
+html[data-content-layout='wide'] .VPDoc .content-container {
+  max-width: none;
+}
+
 /* 确保首页内容在点阵背景之上 */
 .VPHome {
   position: relative;
@@ -103,6 +120,50 @@
   color: var(--vp-c-divider);
 }
 
+/* 网站数据页使用独立的全宽布局，避免分析面板被文档正文宽度限制。 */
+.site-stats {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
+}
+
+.site-stats__header {
+  margin-bottom: 20px;
+}
+
+.site-stats__title {
+  margin: 0;
+  color: var(--vp-c-text-1);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.site-stats__description {
+  margin: 8px 0 0;
+  color: var(--vp-c-text-2);
+  line-height: 1.7;
+}
+
+.site-stats__frame {
+  display: block;
+  width: 100%;
+  height: calc(100vh - var(--vp-nav-height) - 184px);
+  height: calc(100dvh - var(--vp-nav-height) - 184px);
+  min-height: 720px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 16px;
+  background: var(--vp-c-bg-soft);
+  box-shadow: 0 16px 40px rgb(15 23 42 / 8%);
+}
+
+.dark .site-stats__frame {
+  box-shadow: 0 18px 44px rgb(0 0 0 / 28%);
+}
+
 /* 移动端优化：确保触摸滚动流畅 */
 @media (max-width: 768px) {
   .VPHome {
@@ -112,4 +173,43 @@
   .VPFeatures .VPFeature {
     box-shadow: 0 5px 18px rgb(15 23 42 / 5%);
   }
+
+  .site-stats {
+    padding: 24px 12px;
+  }
+
+  .site-stats__header {
+    margin-bottom: 16px;
+  }
+
+  .site-stats__frame {
+    min-height: 680px;
+    border-radius: 12px;
+  }
+}
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  margin: 0 0 1.25rem;
+  color: var(--vp-c-text-2);
+  font-size: 0.875rem;
+}
+
+.article-breadcrumb {
+  display: flex;
+  flex-basis: 100%;
+  gap: 0.45rem;
+}
+
+.settings-preview-active [data-settings-preview-target] {
+  scroll-margin: 5rem;
+}
+
+.settings-preview-active .settings-preview-focus {
+  position: relative;
+  border-radius: 0.75rem;
+  outline: 3px solid color-mix(in srgb, var(--vp-c-brand-1) 72%, transparent);
+  outline-offset: 8px;
+  transition: outline-color 0.2s ease;
 }

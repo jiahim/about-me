@@ -1,3 +1,9 @@
+---
+title: "`src/core/instance/lifecycle.js` 中的 `mountComponent`"
+date: 2025-02-09
+cms: true
+---
+
 # `src/core/instance/lifecycle.js` 中的 `mountComponent`
 
 ## 完整源码
