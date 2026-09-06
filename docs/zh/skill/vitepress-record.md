@@ -1,3 +1,9 @@
+---
+title: "vitepress 踩坑记录"
+date: 2025-02-05
+cms: true
+---
+
 # vitepress 踩坑记录
 
 ## 1. rewrites 属性在开发和生产环境表现不一致

@@ -6,9 +6,10 @@ import { fileURLToPath } from 'node:url'
 import { before, test } from 'node:test'
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)))
-const homeHtml = join(projectRoot, 'docs/.vitepress/dist/index.html')
-const siteStatsHtml = join(projectRoot, 'docs/.vitepress/dist/my-site.html')
-const zhHomeHtml = join(projectRoot, 'docs/.vitepress/dist/zh/index.html')
+const siteOutput = join(projectRoot, 'apps/site/dist')
+const homeHtml = join(siteOutput, 'index.html')
+const siteStatsHtml = join(siteOutput, 'my-site.html')
+const zhHomeHtml = join(siteOutput, 'zh/index.html')
 
 function findLink(html, href, text) {
   return html
@@ -68,8 +69,8 @@ test('the primary navigation does not promote site stats', () => {
 test('the embedded dashboard fills the available page width at a usable height', () => {
   const html = readFileSync(siteStatsHtml, 'utf8')
   const iframe = html.match(/<iframe\b[^>]*>/)?.[0]
-  const styles = [...html.matchAll(/<link\b[^>]*href="(\/assets\/[^\"]+\.css)"[^>]*>/g)]
-    .map(([, href]) => readFileSync(join(projectRoot, 'docs/.vitepress/dist', href.slice(1)), 'utf8'))
+  const styles = [...html.matchAll(/<link\b[^>]*href="(\/assets\/[^"]+\.css)"[^>]*>/g)]
+    .map(([, href]) => readFileSync(join(siteOutput, href.slice(1)), 'utf8'))
     .join('\n')
 
   assert.match(iframe ?? '', /class="site-stats__frame"/)

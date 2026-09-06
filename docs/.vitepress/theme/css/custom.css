@@ -1,3 +1,20 @@
+/* Schema v2 appearance tokens. The raw value is restricted to a validated hex color. */
+:root {
+  --site-accent-color: #3eaf7c;
+  --vp-c-brand-1: var(--site-accent-color);
+  --vp-c-brand-2: color-mix(in srgb, var(--site-accent-color) 86%, black);
+  --vp-c-brand-3: color-mix(in srgb, var(--site-accent-color) 72%, black);
+  --vp-c-brand-soft: color-mix(in srgb, var(--site-accent-color) 14%, transparent);
+}
+
+html[data-content-layout='wide'] .VPDoc .container {
+  max-width: 1600px;
+}
+
+html[data-content-layout='wide'] .VPDoc .content-container {
+  max-width: none;
+}
+
 /* 确保首页内容在点阵背景之上 */
 .VPHome {
   position: relative;
@@ -169,4 +186,30 @@
     min-height: 680px;
     border-radius: 12px;
   }
+}
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  margin: 0 0 1.25rem;
+  color: var(--vp-c-text-2);
+  font-size: 0.875rem;
+}
+
+.article-breadcrumb {
+  display: flex;
+  flex-basis: 100%;
+  gap: 0.45rem;
+}
+
+.settings-preview-active [data-settings-preview-target] {
+  scroll-margin: 5rem;
+}
+
+.settings-preview-active .settings-preview-focus {
+  position: relative;
+  border-radius: 0.75rem;
+  outline: 3px solid color-mix(in srgb, var(--vp-c-brand-1) 72%, transparent);
+  outline-offset: 8px;
+  transition: outline-color 0.2s ease;
 }
