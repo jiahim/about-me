@@ -6,6 +6,7 @@ import { HttpError } from '../route-utils'
 
 const verifiedSettingsScope = Symbol('verified-settings-publish-scope')
 const SETTINGS_ASSET_PREFIX = 'docs/public/images/site/'
+const SITE_CONFIG_PATH = 'config/site.config.json'
 const SESSION_TTL_MS = 30 * 60 * 1000
 
 export interface VerifiedSettingsPublishScope {
@@ -68,16 +69,22 @@ export class SettingsSessionStore {
 
   async create(baseHash: string): Promise<SettingsSessionStatus> {
     const current = await this.readSnapshot()
+    const recoverSavedConfig = current.dirtyPaths.has(SITE_CONFIG_PATH)
     const snapshot: SettingsGitSnapshot = {
       repositoryRoot: current.repositoryRoot,
       branch: current.branch,
       head: current.head,
-      dirtyPaths: new Set(current.dirtyPaths)
+      dirtyPaths: new Set([...current.dirtyPaths].filter((path) => path !== SITE_CONFIG_PATH))
     }
     const time = this.now()
     const session: StoredSession = {
       id: randomUUID(), snapshot, originalBaseHash: baseHash, baseHash,
-      createdAt: time, lastUsedAt: time, acceptedPaths: new Set(), rejectedPaths: new Map(), complete: false, mutating: false
+      createdAt: time,
+      lastUsedAt: time,
+      acceptedPaths: new Set(recoverSavedConfig ? [SITE_CONFIG_PATH] : []),
+      rejectedPaths: new Map(),
+      complete: false,
+      mutating: false
     }
     this.sessions.set(session.id, session)
     return this.publicStatus(session)
@@ -188,8 +195,14 @@ export class SettingsSessionStore {
       throw new HttpError(409, '设置发布会话已过期，请重新加载设置；浏览器草稿仍会保留')
     }
     const current = await this.readSnapshot()
-    if (current.repositoryRoot !== session.snapshot.repositoryRoot || current.branch !== session.snapshot.branch || current.head !== session.snapshot.head) {
-      throw new HttpError(409, '仓库、分支或 HEAD 已变化，设置发布会话已失效')
+    if (current.repositoryRoot !== session.snapshot.repositoryRoot) {
+      throw new HttpError(409, '仓库位置已变化。请返回原项目目录并刷新页面；已保存的设置文件不会丢失。')
+    }
+    if (current.branch !== session.snapshot.branch) {
+      throw new HttpError(409, `当前分支已变化为 ${current.branch}。请切回 ${session.snapshot.branch} 后刷新页面；已保存的设置文件不会丢失。`)
+    }
+    if (current.head !== session.snapshot.head) {
+      throw new HttpError(409, '仓库 HEAD 已变化。请刷新页面重新建立发布会话；已保存的设置更改会自动恢复并可继续发布。')
     }
     session.lastUsedAt = this.now()
     return session

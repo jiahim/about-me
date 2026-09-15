@@ -15,6 +15,25 @@ describe('SettingsSessionStore', () => {
     await expect(store.get(session.id)).rejects.toThrow(/失效/)
   })
 
+  it('recovers a saved site configuration change when a new session starts', async () => {
+    const store = new SettingsSessionStore(async () => ({
+      repositoryRoot: '/repo',
+      branch: 'main',
+      head: 'a'.repeat(40),
+      dirtyPaths: new Set(['config/site.config.json', 'unrelated.md'])
+    }))
+
+    const session = await store.create('base-a')
+
+    expect(session).toMatchObject({
+      publishablePaths: ['config/site.config.json'],
+      rejectedPaths: []
+    })
+    await expect(store.verifyForPublish(session.id, new Set(), 'base-a')).resolves.toMatchObject({
+      paths: ['config/site.config.json']
+    })
+  })
+
   it('expires idle sessions and excludes orphaned site assets', async () => {
     let time = 0
     const store = new SettingsSessionStore(async () => ({ repositoryRoot: '/repo', branch: 'main', head: 'a'.repeat(40), dirtyPaths: new Set() }), () => time)
@@ -46,10 +65,10 @@ describe('SettingsSessionStore', () => {
   })
 
   it.each([
-    ['repositoryRoot', '/other-repo', /仓库、分支或 HEAD/],
-    ['branch', 'feature/other', /仓库、分支或 HEAD/],
-    ['head', 'b'.repeat(40), /仓库、分支或 HEAD/]
-  ] as const)('invalidates when %s changes', async (field, value, message) => {
+    ['repositoryRoot', '/other-repo', /仓库位置已变化/],
+    ['branch', 'feature/other', /当前分支已变化/],
+    ['head', 'b'.repeat(40), /刷新页面.*继续发布/]
+  ] as const)('returns an actionable conflict when %s changes', async (field, value, message) => {
     const snapshot = { repositoryRoot: '/repo', branch: 'main', head: 'a'.repeat(40), dirtyPaths: new Set<string>() }
     const store = new SettingsSessionStore(async () => snapshot)
     const session = await store.create('base-a')
