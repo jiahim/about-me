@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getCurrentAdmin } from './session'
-import { assertLoopbackRequest, RequestSecurityError } from './security'
+import { RequestSecurityError } from './security'
 import type { AdminIdentity } from './types'
 
 export class HttpError extends Error {
@@ -15,21 +15,13 @@ export class HttpError extends Error {
 
 export async function requireAdmin(request: Request): Promise<AdminIdentity> {
   try {
-    assertLoopbackRequest(request)
+    return await getCurrentAdmin(request)
   } catch (error) {
     throw new HttpError(
       403,
       error instanceof Error ? error.message : '管理端仅允许本机访问'
     )
   }
-
-  const admin = await getCurrentAdmin()
-
-  if (!admin) {
-    throw new HttpError(401, '登录已失效，请重新登录')
-  }
-
-  return admin
 }
 
 export function jsonResponse(body: unknown, status = 200): NextResponse {
