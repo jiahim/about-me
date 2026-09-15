@@ -1,17 +1,17 @@
-# Jia him 本地文章工作台设计文档
+# Jia him 文章工作台设计文档
 
 > 本文描述产品架构与技术边界。视觉语言、组件密度、字号、间距和动效以仓库根目录的 [`DESIGN.md`](../../DESIGN.md) 为准。
 
 | 项目 | 内容 |
 | --- | --- |
 | 文档状态 | Approved |
-| 版本 | v1.1 |
-| 日期 | 2026-09-01 |
+| 版本 | v1.2 |
+| 日期 | 2026-09-15 |
 | 对应 PRD | [`PRD.md`](./PRD.md) |
 
 ## 1. 方案摘要
 
-仓库使用 pnpm workspace：`apps/site` 构建 VitePress 静态站点，`apps/admin` 是只在本机运行的 Next.js 编辑工作台，`docs` 是共享 Markdown 内容源。管理端绑定 `127.0.0.1`，不部署、不认证、不持有远端凭据。
+仓库使用 pnpm workspace：`apps/site` 构建 VitePress 静态站点，`apps/admin` 是 Next.js 编辑工作台，`docs` 是共享 Markdown 内容源。管理端进程始终绑定 `127.0.0.1`。默认使用本机身份；私有部署模式由同机 Tailscale Serve 终止 HTTPS、注入 Tailnet 身份并反向代理，应用再执行用户白名单授权。
 
 工作台采用三栏桌面布局：左侧可折叠文章列表，中间 CodeMirror Markdown 源码编辑器，右侧实时预览与文章大纲。保存通过本地文件系统完成；版本控制通过受限 Git 服务层完成；Pull Request 和合并通过本机 GitHub CLI 完成。
 
@@ -19,7 +19,9 @@
 
 ```mermaid
 flowchart LR
-    Browser[本机浏览器] -->|127.0.0.1| Admin[apps/admin]
+    LocalBrowser[本机浏览器] -->|local 模式| Admin[apps/admin\n127.0.0.1:3000]
+    TailnetBrowser[Tailnet 浏览器] -->|HTTPS| Serve[Tailscale Serve]
+    Serve -->|HTTP 回环 + 身份头| Admin
     Admin --> Files[当前 worktree\nMarkdown + Media]
     Admin --> Git[本机 Git]
     Admin --> GHCLI[本机 gh CLI]
@@ -29,7 +31,8 @@ flowchart LR
     Vercel --> Public[www.jiahim.com]
 ```
 
-- `apps/admin` 只允许本机访问，启动命令绑定 `127.0.0.1`。
+- `apps/admin` 始终绑定 `127.0.0.1`；Tailnet 客户端只能经 Tailscale Serve 访问。
+- `local` 模式只接受回环 Host/Origin；`tailscale` 模式要求 HTTPS 公共 Origin、可信 Tailscale 身份头和显式用户白名单。
 - 浏览器不接触 GitHub Token、SSH 私钥或任意 shell。
 - 服务端只能访问当前仓库、允许内容目录和当前文章会话文件。
 - 公开站点构建不依赖管理端，静态产物不得包含 `/admin`。
@@ -130,7 +133,7 @@ apps/admin/src/
 | `POST` | `/api/git/publish` | 分支、精确暂存、提交、推送和 PR |
 | `POST` | `/api/git/merge` | squash merge PR |
 
-所有响应为 `no-store`。写 API 校验 Origin/Host 为回环地址。
+所有响应为 `no-store`。页面和 API 先执行统一访问校验；写 API 额外校验 Origin。`local` 模式要求回环 Host/Origin；`tailscale` 模式要求请求 Host 对应 `ADMIN_PUBLIC_ORIGIN`、代理协议为 HTTPS、存在 `Tailscale-User-Login` 且登录名命中 `ADMIN_TAILSCALE_ALLOWED_USERS`。
 
 ## 8. Git 服务
 
@@ -190,13 +193,13 @@ interface GitStatus {
 
 - 本地 Next.js 而非 Electron/Tauri：复用现有实现，启动轻。
 - CodeMirror 6 而非 textarea：获得成熟 Markdown 编辑能力。
-- 本机 Git + `gh` 而非 GitHub App：无需部署和保存凭据。
+- 服务主机 Git + `gh` 而非 GitHub App：无需在浏览器或应用配置中保存凭据。
 - PR 发布而非直接推送 `main`：保留预览、检查和回滚路径。
 - P0 不做可拖拽栏宽：优先稳定三栏信息架构和折叠。
 
 ## 11. 已确认项
 
-- [x] 管理端仅本机运行，不部署独立域名。
+- [x] 管理端进程仅监听回环地址；可由 Tailscale Serve 提供 Tailnet 私有域名。
 - [x] 使用 monorepo，公开站点继续 Vercel 静态部署。
 - [x] 默认三栏，左栏是可收起文章列表。
 - [x] 中栏 Markdown 源码，右栏实时预览与大纲。
@@ -337,7 +340,7 @@ SettingsWorkspace
 | `POST` | `/api/settings/sections/:id/archive` | 隐藏或归档栏目 |
 | `POST` | `/api/settings/assets` | 保存白名单品牌资源 |
 
-API 延用回环 Host/Origin 检查和 `no-store`。所有路径由服务端根据栏目 ID 与 Schema 解析，客户端不能提交任意目标路径。
+API 延用统一访问模式的 Host/Origin 检查和 `no-store`。所有路径由服务端根据栏目 ID 与 Schema 解析，客户端不能提交任意目标路径。
 
 ### 12.7 保存、并发和事务
 
@@ -388,3 +391,21 @@ API 延用回环 Host/Origin 检查和 `no-store`。所有路径由服务端根�
 - [x] 第一版只编辑中文，数据模型预留多语言和未来一键翻译。
 - [x] 管理全部常见公开站点设置，但不保存秘密。
 - [x] SEO 与 GEO 并列；默认允许 AI 搜索发现、禁止模型训练。
+
+## 14. v1.2 Tailscale 访问边界
+
+```text
+Tailnet browser
+  -> HTTPS / MagicDNS
+  -> Tailscale Serve（TLS、Tailnet ACL、身份头清洗与注入）
+  -> HTTP 127.0.0.1:3000
+  -> 应用 Host + 身份白名单 + 写请求 Origin 校验
+  -> 现有文件与 Git 服务
+```
+
+- `ADMIN_ACCESS_MODE` 只允许 `local` 或 `tailscale`，缺省为 `local`。
+- `tailscale` 模式启动时/首次请求时对 `ADMIN_PUBLIC_ORIGIN` 和 `ADMIN_TAILSCALE_ALLOWED_USERS` 失败关闭；Origin 只允许无路径、查询、片段和凭据的 HTTPS origin。
+- 应用只消费 `Tailscale-User-Login`，不根据显示名、头像、来源 IP 或模型推断授权。
+- Tailscale Serve 会清洗客户端伪造的身份头；后端保持回环监听，避免 Tailnet/LAN 客户端绕过 Serve 自行注入身份头。
+- 服务进程使用专用 Unix 用户运行；该用户对目标 worktree 可写，并独立配置 Git、SSH 和 `gh`。
+- 不配置 Funnel。Tailnet grants/ACL 作为网络层最小授权，应用白名单作为写仓库能力的第二层授权。

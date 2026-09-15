@@ -1,6 +1,6 @@
-# Jia him 本地文章工作台
+# Jia him 私有文章工作台
 
-这是一个只在本机运行的 Next.js 编辑器。它不会部署到 Vercel，也没有远程登录或 GitHub App。
+这是一个默认只在本机运行、也可经 Tailscale Serve 私有访问的 Next.js 编辑器。它不会部署到 Vercel，不支持公网访问，也没有账号密码登录或 GitHub App。
 
 ## 启动
 
@@ -10,14 +10,30 @@
 pnpm dev:admin
 ```
 
-服务固定监听 `http://127.0.0.1:3000`。默认读取当前 monorepo 根目录；如从特殊目录启动，可在本地环境中设置：
+服务固定监听 `http://127.0.0.1:3000`。默认读取当前 monorepo 根目录；如从特殊目录启动，可在环境中设置：
 
 ```bash
 LOCAL_REPOSITORY_ROOT=/absolute/path/to/about-me
 NEXT_PUBLIC_SITE_URL=http://127.0.0.1:5173
 ```
 
-管理端没有账号登录，所有读写与 Git 接口都只接受回环地址和严格同源请求。不要把它绑定到 `0.0.0.0`、私网地址或公网地址。
+默认 `ADMIN_ACCESS_MODE=local`，所有页面、读写与 Git 接口都只接受回环地址和严格同源请求。不要把它绑定到 `0.0.0.0`、私网地址、Tailscale IP 或公网地址。
+
+## Tailscale 私有访问
+
+服务器模式仍让 Next.js 监听回环地址，由同机 Tailscale Serve 提供 Tailnet HTTPS 入口：
+
+```bash
+ADMIN_ACCESS_MODE=tailscale
+ADMIN_PUBLIC_ORIGIN=https://editor.example-tailnet.ts.net
+ADMIN_TAILSCALE_ALLOWED_USERS=owner@example.com
+LOCAL_REPOSITORY_ROOT=/srv/jiahim
+NEXT_PUBLIC_SITE_URL=https://www.jiahim.com
+```
+
+应用要求 Tailscale Serve 注入 `Tailscale-User-Login`，并与 `ADMIN_TAILSCALE_ALLOWED_USERS` 精确匹配。写请求的 Origin 必须与 `ADMIN_PUBLIC_ORIGIN` 一致。不要使用 Tailscale Funnel；不要在 Tailscale Serve 之外添加会伪造或覆盖身份头的代理。
+
+完整安装、开机启动、验证和回滚步骤见 [`../../docs/deployment/tailscale-admin.md`](../../docs/deployment/tailscale-admin.md)。
 
 ## 编辑器与站点设置
 

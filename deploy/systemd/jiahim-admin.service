@@ -1,0 +1,25 @@
+[Unit]
+Description=Jia him private editorial workbench
+After=network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+
+[Service]
+Type=simple
+User=jiahim
+Group=jiahim
+WorkingDirectory=/srv/jiahim
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/etc/jiahim-admin.env
+ExecStart=/usr/bin/env pnpm --filter @jiahim/admin start
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

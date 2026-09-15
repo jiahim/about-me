@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { errorResponse, requireAdmin } from './route-utils'
 import { assertSameOrigin } from './security'
+
+afterEach(() => {
+  delete process.env.ADMIN_ACCESS_MODE
+  delete process.env.ADMIN_PUBLIC_ORIGIN
+  delete process.env.ADMIN_TAILSCALE_ALLOWED_USERS
+})
 
 describe('requireAdmin', () => {
   it('rejects a non-loopback request before granting the local identity', async () => {
@@ -20,6 +26,25 @@ describe('requireAdmin', () => {
     await expect(requireAdmin(request)).resolves.toMatchObject({
       login: '本地工作区',
       local: true
+    })
+  })
+
+  it('returns the authenticated Tailscale identity in private deployment mode', async () => {
+    process.env.ADMIN_ACCESS_MODE = 'tailscale'
+    process.env.ADMIN_PUBLIC_ORIGIN = 'https://editor.example-tailnet.ts.net'
+    process.env.ADMIN_TAILSCALE_ALLOWED_USERS = 'owner@example.com'
+
+    const request = new Request('http://127.0.0.1:3000/api/articles', {
+      headers: {
+        host: 'editor.example-tailnet.ts.net',
+        'x-forwarded-proto': 'https',
+        'tailscale-user-login': 'owner@example.com'
+      }
+    })
+
+    await expect(requireAdmin(request)).resolves.toEqual({
+      login: 'owner@example.com',
+      local: false
     })
   })
 

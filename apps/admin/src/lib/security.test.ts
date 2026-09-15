@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { assertLoopbackRequest, assertSameOrigin } from './security'
+import {
+  authenticateAdminRequest,
+  assertLoopbackRequest,
+  assertSameOrigin
+} from './security'
 
 function request(
   url: string,
@@ -8,6 +12,12 @@ function request(
 ): Request {
   return new Request(url, { headers })
 }
+
+afterEach(() => {
+  delete process.env.ADMIN_ACCESS_MODE
+  delete process.env.ADMIN_PUBLIC_ORIGIN
+  delete process.env.ADMIN_TAILSCALE_ALLOWED_USERS
+})
 
 describe('assertLoopbackRequest', () => {
   it.each([
@@ -189,6 +199,65 @@ describe('assertSameOrigin', () => {
           host: '127.0.0.1:3000',
           ...(origin ? { origin } : {})
         })
+      )
+    ).toThrow('请求来源校验失败')
+  })
+})
+
+describe('Tailscale Serve authentication', () => {
+  beforeEach(() => {
+    process.env.ADMIN_ACCESS_MODE = 'tailscale'
+    process.env.ADMIN_PUBLIC_ORIGIN = 'https://editor.example-tailnet.ts.net'
+    process.env.ADMIN_TAILSCALE_ALLOWED_USERS = 'owner@example.com'
+  })
+
+  function tailscaleRequest(
+    headers: Record<string, string> = {}
+  ): Request {
+    return request('http://127.0.0.1:3000/api/articles', {
+      host: 'editor.example-tailnet.ts.net',
+      'x-forwarded-proto': 'https',
+      'tailscale-user-login': 'owner@example.com',
+      ...headers
+    })
+  }
+
+  it('accepts an allowed identity injected by Tailscale Serve', () => {
+    expect(authenticateAdminRequest(tailscaleRequest())).toEqual({
+      login: 'owner@example.com',
+      local: false
+    })
+  })
+
+  it('normalizes the Tailscale login before matching', () => {
+    expect(
+      authenticateAdminRequest(
+        tailscaleRequest({ 'tailscale-user-login': ' Owner@Example.com ' })
+      )
+    ).toMatchObject({ login: 'owner@example.com' })
+  })
+
+  it.each([
+    [{ 'tailscale-user-login': '' }, 'Tailscale 身份'],
+    [{ 'tailscale-user-login': 'intruder@example.com' }, '未获授权'],
+    [{ host: 'attacker.example.com' }, '请求主机'],
+    [{ 'x-forwarded-proto': 'http' }, 'HTTPS']
+  ])('rejects invalid proxy metadata: %j', (headers, message) => {
+    expect(() => authenticateAdminRequest(tailscaleRequest(headers))).toThrow(message)
+  })
+
+  it('accepts writes only from the configured public origin', () => {
+    expect(() =>
+      assertSameOrigin(
+        tailscaleRequest({ origin: 'https://editor.example-tailnet.ts.net' })
+      )
+    ).not.toThrow()
+  })
+
+  it('rejects a write from another Tailnet origin', () => {
+    expect(() =>
+      assertSameOrigin(
+        tailscaleRequest({ origin: 'https://other.example-tailnet.ts.net' })
       )
     ).toThrow('请求来源校验失败')
   })
