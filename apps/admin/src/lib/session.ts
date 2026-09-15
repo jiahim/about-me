@@ -1,10 +1,6 @@
 import type { AdminIdentity } from './types'
+import { authorizeAdminRequest } from './security'
 
-const localAdmin: AdminIdentity = {
-  login: '本地工作区',
-  local: true
-}
-
-export async function getCurrentAdmin(): Promise<AdminIdentity> {
-  return localAdmin
+export async function getCurrentAdmin(request: Request): Promise<AdminIdentity> {
+  return authorizeAdminRequest(request)
 }

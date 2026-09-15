@@ -275,7 +275,7 @@
       }
     },
     "llmsTxt": {
-      "enabled": false
+      "enabled": true
     },
     "contentSignals": {
       "requireAuthor": true,

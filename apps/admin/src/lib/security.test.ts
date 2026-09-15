@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { assertLoopbackRequest, assertSameOrigin } from './security'
+import {
+  authorizeAdminRequest,
+  assertLoopbackRequest,
+  assertSameOrigin
+} from './security'
 
 function request(
   url: string,
@@ -8,6 +12,11 @@ function request(
 ): Request {
   return new Request(url, { headers })
 }
+
+afterEach(() => {
+  delete process.env.ADMIN_ACCESS_MODE
+  delete process.env.ADMIN_ALLOWED_ORIGIN
+})
 
 describe('assertLoopbackRequest', () => {
   it.each([
@@ -189,6 +198,49 @@ describe('assertSameOrigin', () => {
           host: '127.0.0.1:3000',
           ...(origin ? { origin } : {})
         })
+      )
+    ).toThrow('请求来源校验失败')
+  })
+})
+
+describe('private network access', () => {
+  beforeEach(() => {
+    process.env.ADMIN_ACCESS_MODE = 'private'
+    process.env.ADMIN_ALLOWED_ORIGIN = 'http://feiniunas:3000'
+  })
+
+  function privateRequest(
+    headers: Record<string, string> = {}
+  ): Request {
+    return request('http://127.0.0.1:3000/api/articles', {
+      host: 'feiniunas:3000',
+      ...headers
+    })
+  }
+
+  it('accepts a direct request to the configured private origin without identity headers', () => {
+    expect(authorizeAdminRequest(privateRequest())).toEqual({
+      login: '私有网络',
+      local: false
+    })
+  })
+
+  it('rejects requests sent to another Host', () => {
+    expect(() => authorizeAdminRequest(privateRequest({ host: 'attacker.example.com' }))).toThrow('请求主机')
+  })
+
+  it('accepts writes only from the configured public origin', () => {
+    expect(() =>
+      assertSameOrigin(
+        privateRequest({ origin: 'http://feiniunas:3000' })
+      )
+    ).not.toThrow()
+  })
+
+  it('rejects a write from another Tailnet origin', () => {
+    expect(() =>
+      assertSameOrigin(
+        privateRequest({ origin: 'http://other-node:3000' })
       )
     ).toThrow('请求来源校验失败')
   })

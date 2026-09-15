@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { errorResponse, requireAdmin } from './route-utils'
 import { assertSameOrigin } from './security'
+
+afterEach(() => {
+  delete process.env.ADMIN_ACCESS_MODE
+  delete process.env.ADMIN_ALLOWED_ORIGIN
+})
 
 describe('requireAdmin', () => {
   it('rejects a non-loopback request before granting the local identity', async () => {
@@ -20,6 +25,22 @@ describe('requireAdmin', () => {
     await expect(requireAdmin(request)).resolves.toMatchObject({
       login: '本地工作区',
       local: true
+    })
+  })
+
+  it('returns the private-network identity in direct deployment mode', async () => {
+    process.env.ADMIN_ACCESS_MODE = 'private'
+    process.env.ADMIN_ALLOWED_ORIGIN = 'http://feiniunas:3000'
+
+    const request = new Request('http://feiniunas:3000/api/articles', {
+      headers: {
+        host: 'feiniunas:3000'
+      }
+    })
+
+    await expect(requireAdmin(request)).resolves.toEqual({
+      login: '私有网络',
+      local: false
     })
   })
 

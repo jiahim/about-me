@@ -2,6 +2,8 @@ import { createDefaultSiteConfiguration } from '@jiahim/site-schema'
 import type { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { HttpError } from '@/lib/route-utils'
+
 const mocks = vi.hoisted(() => ({
   publish: vi.fn(),
   read: vi.fn(),
@@ -61,10 +63,13 @@ describe('设置发布路由', () => {
     expect(mocks.publish).not.toHaveBeenCalled()
   })
 
-  it('发布失败时保留会话供用户处理后重试', async () => {
-    mocks.publish.mockRejectedValue(new Error('当前分支不是默认分支'))
+  it('将可处理的 Git 冲突作为 409 返回并保留会话供用户重试', async () => {
+    mocks.publish.mockRejectedValue(new HttpError(409, '本地 main 落后 origin/main 1 个提交。请先运行 git pull --ff-only origin main。'))
     const response = await POST(request({ scope: 'settings', message: '[Human] config: update', date: '2026-09-05' }))
-    expect(response.status).toBe(500)
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: '本地 main 落后 origin/main 1 个提交。请先运行 git pull --ff-only origin main。'
+    })
     expect(mocks.complete).not.toHaveBeenCalled()
   })
 
