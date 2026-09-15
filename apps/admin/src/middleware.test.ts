@@ -5,37 +5,33 @@ import { middleware } from './middleware'
 
 describe('admin access middleware', () => {
   beforeEach(() => {
-    process.env.ADMIN_ACCESS_MODE = 'tailscale'
-    process.env.ADMIN_PUBLIC_ORIGIN = 'https://editor.example-tailnet.ts.net'
-    process.env.ADMIN_TAILSCALE_ALLOWED_USERS = 'owner@example.com'
+    process.env.ADMIN_ACCESS_MODE = 'private'
+    process.env.ADMIN_ALLOWED_ORIGIN = 'http://feiniunas:3000'
   })
 
   afterEach(() => {
     delete process.env.ADMIN_ACCESS_MODE
-    delete process.env.ADMIN_PUBLIC_ORIGIN
-    delete process.env.ADMIN_TAILSCALE_ALLOWED_USERS
+    delete process.env.ADMIN_ALLOWED_ORIGIN
   })
 
-  function request(login?: string): NextRequest {
-    return new NextRequest('http://127.0.0.1:3000/', {
+  function request(host = 'feiniunas:3000'): NextRequest {
+    return new NextRequest('http://feiniunas:3000/', {
       headers: {
-        host: 'editor.example-tailnet.ts.net',
-        'x-forwarded-proto': 'https',
-        ...(login ? { 'tailscale-user-login': login } : {})
+        host
       }
     })
   }
 
-  it('allows an authenticated page request to continue', () => {
-    expect(middleware(request('owner@example.com')).status).toBe(200)
+  it('allows a direct private-network page request to continue', () => {
+    expect(middleware(request()).status).toBe(200)
   })
 
-  it('returns 403 before rendering the page for an unauthenticated request', async () => {
-    const response = middleware(request())
+  it('returns 403 before rendering the page for a request using another Host', async () => {
+    const response = middleware(request('attacker.example.com'))
 
     expect(response.status).toBe(403)
     await expect(response.json()).resolves.toEqual({
-      error: '请求缺少可信的 Tailscale 身份'
+      error: '请求主机校验失败，请使用配置的私有管理端地址'
     })
   })
 })

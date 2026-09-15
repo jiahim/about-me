@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { authenticateAdminRequest } from '@/lib/security'
+import { authorizeAdminRequest } from '@/lib/security'
 
 export function middleware(request: NextRequest): NextResponse {
   try {
-    authenticateAdminRequest(request)
+    authorizeAdminRequest(request)
     return NextResponse.next()
   } catch (error) {
     return NextResponse.json(

@@ -6,19 +6,19 @@
 | 版本 | v1.2 |
 | 日期 | 2026-09-15 |
 | 目标站点 | `https://www.jiahim.com` |
-| 运行方式 | 本机运行，或经 Tailscale Serve 在私有 Tailnet 内运行 |
+| 运行方式 | 本机运行，或在用户自行管理的 Tailscale 私有网络内直接运行 |
 
 ## 1. 背景与决策
 
 Jia him 是部署在 Vercel 的 VitePress 纯静态站点，Markdown 和媒体保存在 GitHub 仓库。站点所有者需要比直接编辑文件更顺手的写作体验，但不需要数据库、远程管理服务或额外账号体系。
 
-最终采用轻量、自托管方案：在 monorepo 中保留公开站点 `apps/site`，由 `apps/admin` 直接读写所在服务器的 Git worktree，并利用该服务器的 Git 和 GitHub CLI 完成版本控制、推送、Pull Request 和发布。管理端默认仅本机访问；需要跨设备时，由 Tailscale Serve 终止 HTTPS、提供 Tailnet 身份，并只向服务器回环地址转发。公开站点仍然只有静态产物，管理端不会部署到 Vercel，也不会暴露在公网。
+最终采用轻量、自托管方案：在 monorepo 中保留公开站点 `apps/site`，由 `apps/admin` 直接读写所在服务器的 Git worktree，并利用该服务器的 Git 和 GitHub CLI 完成版本控制、推送、Pull Request 和发布。管理端默认仅本机访问；需要跨设备时，可在用户自行管理的 Tailscale 私有网络中直接监听并访问，不增加反向代理或应用登录。公开站点仍然只有静态产物，管理端不会部署到 Vercel，也不得暴露在公网。
 
 ## 2. 产品目标
 
 - 提供接近主流 Markdown 编辑器的桌面写作体验。
 - Markdown 继续作为唯一内容源，不引入数据库或第三方 CMS。
-- 管理端进程只监听回环地址；远程访问只能经 Tailscale Serve，并受 Tailnet 用户白名单约束。
+- 管理端默认只监听回环地址；显式启用私有网络模式后，可监听服务器网络接口并由 Tailscale 控制可达范围。
 - 所有文章和媒体修改都进入当前 worktree，可被 Git 检查、提交和恢复。
 - 将“保存文件”“提交并推送”“合并并发布”明确分开，避免误发布。
 - 通过内容分支、Pull Request、Vercel Preview 和合并保留完整审计记录。
@@ -115,7 +115,7 @@ Jia him 是部署在 Vercel 的 VitePress 纯静态站点，Markdown 和媒体�
 ## 6. 非功能要求
 
 - 使用 TypeScript、pnpm workspace 和 Node.js 22+。
-- 管理端仅绑定 `127.0.0.1`；Tailnet 部署必须通过同机 Tailscale Serve 反向代理，不直接监听 LAN 或 Tailscale IP。
+- 管理端默认绑定 `127.0.0.1`；私有网络模式必须显式配置监听地址和唯一允许的浏览器 Origin，且不得暴露到公网。
 - 文件路径限制在允许的文章和媒体目录内。
 - 执行 Git/`gh` 时使用参数数组，不通过 shell 拼接用户输入。
 - 管理端不读取或存储 GitHub Token；认证沿用本机 Git/SSH 与 `gh auth`。
@@ -163,7 +163,7 @@ Jia him 是部署在 Vercel 的 VitePress 纯静态站点，Markdown 和媒体�
 
 ### 10.1 产品定位扩展
 
-工作台不再只覆盖文章编辑，而是成为“当前 Git 仓库的安全可视化管理 UI”。它不引入数据库、不保存云端秘密，也不直接调用 Vercel API。所有可发布状态都以仓库文件为事实来源，并沿用 Git、Pull Request、Vercel Preview 和生产分支发布链路。v1.2 允许经 Tailscale Serve 私有访问，但不改变上述数据与发布边界。
+工作台不再只覆盖文章编辑，而是成为“当前 Git 仓库的安全可视化管理 UI”。它不引入数据库、不保存云端秘密，也不直接调用 Vercel API。所有可发布状态都以仓库文件为事实来源，并沿用 Git、Pull Request、Vercel Preview 和生产分支发布链路。v1.2 允许在用户自行管理的 Tailscale 网络中直接访问，但不改变上述数据与发布边界。
 
 VitePress 继续作为公开网站的渲染与构建核心。工作台修改结构化配置、Markdown 和公开资源；VitePress 在构建时读取这些文件并生成导航、侧边栏、页面元数据、SEO/GEO 输出和静态站点。
 
@@ -238,20 +238,20 @@ VitePress 继续作为公开网站的渲染与构建核心。工作台修改结�
 - 自动迁移已有栏目物理目录或批量修改公开 URL。
 - GEO 排名承诺、黑盒评分或关键词堆砌工具。
 
-## 11. v1.2：Tailscale 私有部署
+## 11. v1.2：私有网络直接部署
 
-- 默认访问模式保持 `local`；只有显式配置 `ADMIN_ACCESS_MODE=tailscale` 才启用 Tailnet 访问。
-- 管理端进程始终监听 `127.0.0.1:3000`，由同机 Tailscale Serve 提供 Tailnet 内的 HTTPS 入口。
-- Tailscale Serve 的 `Tailscale-User-Login` 作为确定性身份来源；应用还必须使用 `ADMIN_TAILSCALE_ALLOWED_USERS` 做精确白名单授权。
-- 写请求的 `Origin` 必须精确匹配 `ADMIN_PUBLIC_ORIGIN`，且生产 Tailnet 地址必须使用 HTTPS。
-- 缺失身份头、空白名单、未授权用户、错误 Host/Origin、直接 LAN 访问和 Funnel 访问全部默认拒绝。
+- 默认访问模式保持 `local`；只有显式配置 `ADMIN_ACCESS_MODE=private` 才启用私有网络访问。
+- `ADMIN_HOST` 和 `PORT` 决定生产服务监听地址；未配置时仍回退到 `127.0.0.1:3000`。
+- 私有网络模式不做用户身份认证，访问控制由用户自行管理的 Tailscale 网络和服务器防火墙负责。
+- 页面请求 Host 与写请求 Origin 必须精确匹配 `ADMIN_ALLOWED_ORIGIN`。
+- 配置缺失、错误 Host/Origin 和非 HTTP(S) 请求全部默认拒绝。
 - 页面和所有 API 使用同一访问策略；浏览器不持有 GitHub Token、SSH 私钥或额外登录 Cookie。
 - 服务器上的服务账号持有目标 worktree、Git/SSH 与 `gh` 运行环境；凭据不写入仓库或前端状态。
-- 后管服务和 Tailscale Serve 均在服务器重启后恢复；部署文档必须包含安装、验证、更新与回滚步骤。
+- 后管服务在服务器重启后恢复；部署文档必须包含安装、网络限制、验证、更新与回滚步骤。
 
 ### 11.1 v1.2 不在范围
 
-- Tailscale Funnel 或任何公网入口。
-- 不经过 Tailscale Serve、直接监听 `0.0.0.0`、LAN IP 或 Tailscale IP。
+- 任何公网入口。
+- 应用账号、Tailscale 身份头、登录会话或反向代理。
 - 面向团队的角色、权限管理、审计后台或会话系统。
 - 自动拉取代码、自动合并、自动发布或服务器凭据托管。

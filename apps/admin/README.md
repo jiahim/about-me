@@ -1,6 +1,6 @@
 # Jia him 私有文章工作台
 
-这是一个默认只在本机运行、也可经 Tailscale Serve 私有访问的 Next.js 编辑器。它不会部署到 Vercel，不支持公网访问，也没有账号密码登录或 GitHub App。
+这是一个默认只在本机运行、也可在用户自行管理的私有网络中直接访问的 Next.js 编辑器。它不会部署到 Vercel，也没有账号密码登录、反向代理或 GitHub App。
 
 ## 启动
 
@@ -17,21 +17,22 @@ LOCAL_REPOSITORY_ROOT=/absolute/path/to/about-me
 NEXT_PUBLIC_SITE_URL=http://127.0.0.1:5173
 ```
 
-默认 `ADMIN_ACCESS_MODE=local`，所有页面、读写与 Git 接口都只接受回环地址和严格同源请求。不要把它绑定到 `0.0.0.0`、私网地址、Tailscale IP 或公网地址。
+默认 `ADMIN_ACCESS_MODE=local`，所有页面、读写与 Git 接口都只接受回环地址和严格同源请求。只有在确认访问网络由自己控制后，才启用下述 `private` 模式和外部监听；不要把它暴露到公网。
 
-## Tailscale 私有访问
+## 私有网络直接访问
 
-服务器模式仍让 Next.js 监听回环地址，由同机 Tailscale Serve 提供 Tailnet HTTPS 入口：
+确认网络内只有受信任设备后，可以让 Next.js 直接监听服务器网络接口：
 
 ```bash
-ADMIN_ACCESS_MODE=tailscale
-ADMIN_PUBLIC_ORIGIN=https://editor.example-tailnet.ts.net
-ADMIN_TAILSCALE_ALLOWED_USERS=owner@example.com
+ADMIN_ACCESS_MODE=private
+ADMIN_ALLOWED_ORIGIN=http://feiniunas:3000
+ADMIN_HOST=0.0.0.0
+PORT=3000
 LOCAL_REPOSITORY_ROOT=/srv/jiahim
 NEXT_PUBLIC_SITE_URL=https://www.jiahim.com
 ```
 
-应用要求 Tailscale Serve 注入 `Tailscale-User-Login`，并与 `ADMIN_TAILSCALE_ALLOWED_USERS` 精确匹配。写请求的 Origin 必须与 `ADMIN_PUBLIC_ORIGIN` 一致。不要使用 Tailscale Funnel；不要在 Tailscale Serve 之外添加会伪造或覆盖身份头的代理。
+私有网络模式不检查用户身份。页面 Host 和写请求 Origin 必须与 `ADMIN_ALLOWED_ORIGIN` 一致；真正的访问权限完全由 Tailscale 网络与服务器防火墙负责。`ADMIN_HOST=0.0.0.0` 也会监听物理局域网接口，如不希望局域网设备访问，应改为服务器的 Tailscale IP 或配置防火墙。
 
 完整安装、开机启动、验证和回滚步骤见 [`../../docs/deployment/tailscale-admin.md`](../../docs/deployment/tailscale-admin.md)。
 

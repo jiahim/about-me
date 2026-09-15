@@ -1,25 +1,34 @@
-# 通过 Tailscale 部署文章工作台
+# 在 Tailscale 私有网络中部署文章工作台
 
 ## 访问结构
 
 ```text
-浏览器 -> Tailnet HTTPS -> Tailscale Serve -> 127.0.0.1:3000 -> apps/admin
+浏览器 -> Tailscale 私有网络 -> 服务器:3000 -> apps/admin
 ```
 
-Next.js 不直接监听 LAN 或 Tailscale IP。Tailscale Serve 负责 TLS、Tailnet 网络访问和身份头清洗/注入；应用使用登录名白名单和严格 Origin 校验做第二层授权。禁止配置 Tailscale Funnel。
+本方案不使用 Tailscale Serve、反向代理或应用身份认证。应用直接监听服务器网络接口；Tailscale 网络和服务器防火墙是访问控制边界。应用仍校验精确 Host，并对写请求校验 Origin，避免通过其他地址误访问或跨站触发写操作。
 
 下列示例面向使用 systemd 的 Linux 服务器，默认服务用户为 `jiahim`，仓库目录为 `/srv/jiahim`。如果服务器使用其他用户或目录，先同步修改 unit 与环境文件。
 
 ## 1. 前置条件
 
 - Node.js 22+、Corepack/pnpm 10。
-- Tailscale 已登录，MagicDNS 与 Tailnet HTTPS 已启用。
+- 服务器和访问设备已加入用户自行管理的 Tailscale 网络。
 - 服务用户能够读写目标仓库，并已完成 `git remote -v`、SSH 推送和 `gh auth status` 检查。
-- Tailnet grants/ACL 只允许预期用户或设备访问该服务器的 HTTPS 服务。
+- Tailscale grants/ACL 或服务器防火墙只允许预期设备访问 TCP 3000。
 
 不要把 SSH 私钥、GitHub Token 或 Tailscale auth key 写入仓库、unit 文件或浏览器配置。
 
-## 2. 安装与构建
+## 2. 选择固定访问地址
+
+任选一个日常稳定使用的地址：
+
+- MagicDNS：`http://feiniunas:3000`
+- Tailscale IP：`http://100.x.y.z:3000`
+
+后续必须始终使用同一个地址。应用会拒绝 Host 或 Origin 不匹配的其他别名。
+
+## 3. 安装与构建
 
 以服务用户准备 `/srv/jiahim` 中的仓库，然后在仓库根目录运行：
 
@@ -33,23 +42,24 @@ gh auth status
 
 构建和运行使用同一个 worktree。后管可能修改其中的 Markdown、配置和 Git 状态，不要使用自动拉取或自动覆盖工作区的更新任务。
 
-## 3. 配置运行环境
+## 4. 配置运行环境
 
 创建仅 root 可写、服务用户可读的 `/etc/jiahim-admin.env`：
 
 ```dotenv
-ADMIN_ACCESS_MODE=tailscale
-ADMIN_PUBLIC_ORIGIN=https://editor.example-tailnet.ts.net
-ADMIN_TAILSCALE_ALLOWED_USERS=owner@example.com
+ADMIN_ACCESS_MODE=private
+ADMIN_ALLOWED_ORIGIN=http://feiniunas:3000
+ADMIN_HOST=0.0.0.0
+PORT=3000
 LOCAL_REPOSITORY_ROOT=/srv/jiahim
 NEXT_PUBLIC_SITE_URL=https://www.jiahim.com
 ```
 
-- `ADMIN_PUBLIC_ORIGIN` 必须替换为 `tailscale serve` 显示的完整 HTTPS origin，不能包含路径。
-- `ADMIN_TAILSCALE_ALLOWED_USERS` 使用 Tailscale 登录名；多个用户用逗号分隔。
+- `ADMIN_ALLOWED_ORIGIN` 替换为上一步选定的无路径 HTTP(S) origin。
+- `ADMIN_HOST=0.0.0.0` 同时监听 Tailscale 与物理局域网接口。若只允许 Tailnet 访问，可填服务器稳定的 Tailscale IP，或通过防火墙限制 3000 端口只从 `tailscale0` 进入。
 - 配置文件建议权限为 `0640`，owner 为 `root`，group 为服务用户所在的私有组。
 
-## 4. 安装常驻服务
+## 5. 安装常驻服务
 
 检查 `deploy/systemd/jiahim-admin.service` 的 `User`、`Group`、`WorkingDirectory` 和 pnpm 路径后安装：
 
@@ -60,35 +70,21 @@ sudo systemctl enable --now jiahim-admin.service
 sudo systemctl status jiahim-admin.service
 ```
 
-服务只应监听回环地址：
+确认监听地址符合配置：
 
 ```bash
-curl --fail-with-body http://127.0.0.1:3000/
+ss -lntp | grep ':3000'
 ```
 
-在 Tailscale 模式下，这个直接请求返回 `403` 是正确结果，因为它没有可信的 Tailscale 身份。
-
-## 5. 建立 Tailnet HTTPS 入口
-
-在服务器上运行：
-
-```bash
-sudo tailscale serve --bg 3000
-sudo tailscale serve status
-```
-
-把输出的 `https://<device>.<tailnet>.ts.net` 写入 `ADMIN_PUBLIC_ORIGIN`。如地址发生变化，更新环境文件并重启后管。
-
-日常访问只需在已加入 Tailnet 的浏览器中打开该 HTTPS 地址，不需要 SSH，也不需要手动填写端口。
+日常访问只需在已加入 Tailnet 的浏览器中打开 `ADMIN_ALLOWED_ORIGIN`，不需要 SSH、反向代理或额外登录。
 
 ## 6. 验收
 
-1. 白名单用户打开 HTTPS 地址，文章列表、设置和 Git 状态正常加载。
-2. 保存一篇无关紧要的测试草稿，确认只修改预期 worktree 文件且不会自动提交。
-3. 非白名单 Tailnet 用户得到 `403`。
-4. 直接访问服务器 LAN/Tailscale IP 的 3000 端口失败。
-5. `curl http://127.0.0.1:3000/api/articles` 得到 `403`。
-6. 重启服务器后，`systemctl is-active jiahim-admin` 和 `tailscale serve status` 均恢复正常。
+1. 从 Tailnet 设备打开配置地址，文章列表、设置和 Git 状态正常加载。
+2. 使用其他主机名或 IP 访问时得到 `403`。
+3. 保存一篇无关紧要的测试草稿，确认只修改预期 worktree 文件且不会自动提交。
+4. 从不受信任网络确认 3000 端口不可达；若绑定 `0.0.0.0`，同时核对物理局域网访问是否符合预期。
+5. 重启服务器后，`systemctl is-active jiahim-admin` 返回 `active`，配置地址恢复访问。
 
 真实推送和 PR/合并仍是独立操作，不应仅为部署验收而触发。
 
@@ -103,10 +99,10 @@ pnpm build:admin
 sudo systemctl start jiahim-admin
 ```
 
-应用回滚使用 Git 中已审核的前一版本重新构建。网络入口可立即关闭：
+应用回滚使用 Git 中已审核的前一版本重新构建。临时关闭入口只需停止服务：
 
 ```bash
-sudo tailscale serve off
+sudo systemctl disable --now jiahim-admin
 ```
 
-关闭 Serve 不会删除仓库或文章；服务数据仍保留在 `/srv/jiahim` worktree 中。
+停止服务不会删除仓库或文章；内容仍保留在 `/srv/jiahim` worktree 中。

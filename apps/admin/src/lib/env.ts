@@ -1,72 +1,77 @@
 export type ContentMode = 'local'
-export type AdminAccessMode = 'local' | 'tailscale'
+export type AdminAccessMode = 'local' | 'private'
 
 export function getContentMode(): ContentMode {
   return 'local'
 }
 
-export function getAdminHost(): '127.0.0.1' {
-  return '127.0.0.1'
+export function getAdminHost(): string {
+  const configuredHost = process.env.ADMIN_HOST
+  if (configuredHost === undefined) {
+    return '127.0.0.1'
+  }
+
+  const host = configuredHost.trim()
+  if (!host || !/^[A-Za-z0-9.:-]+$/.test(host)) {
+    throw new Error('ADMIN_HOST 必须是纯主机名或 IP 地址')
+  }
+
+  return host
+}
+
+export function getAdminPort(): number {
+  const value = process.env.PORT?.trim() || '3000'
+  if (!/^\d+$/.test(value)) {
+    throw new Error('PORT 必须是有效端口')
+  }
+
+  const port = Number(value)
+  if (port < 1 || port > 65_535) {
+    throw new Error('PORT 必须在 1 到 65535 之间')
+  }
+
+  return port
 }
 
 export function getAdminAccessMode(): AdminAccessMode {
   const mode = process.env.ADMIN_ACCESS_MODE?.trim() || 'local'
 
-  if (mode !== 'local' && mode !== 'tailscale') {
-    throw new Error('ADMIN_ACCESS_MODE 只允许 local 或 tailscale')
+  if (mode !== 'local' && mode !== 'private') {
+    throw new Error('ADMIN_ACCESS_MODE 只允许 local 或 private')
   }
 
   return mode
 }
 
-export function getAdminPublicOrigin(): string | null {
+export function getAdminAllowedOrigin(): string | null {
   if (getAdminAccessMode() === 'local') {
     return null
   }
 
-  const value = process.env.ADMIN_PUBLIC_ORIGIN?.trim()
+  const value = process.env.ADMIN_ALLOWED_ORIGIN?.trim()
   if (!value) {
-    throw new Error('Tailscale 模式必须配置 ADMIN_PUBLIC_ORIGIN')
+    throw new Error('私有网络模式必须配置 ADMIN_ALLOWED_ORIGIN')
   }
 
   let origin: URL
   try {
     origin = new URL(value)
   } catch {
-    throw new Error('ADMIN_PUBLIC_ORIGIN 必须是有效的 HTTPS origin')
+    throw new Error('ADMIN_ALLOWED_ORIGIN 必须是有效的 HTTP 或 HTTPS origin')
   }
 
   if (
-    origin.protocol !== 'https:' ||
+    (origin.protocol !== 'http:' && origin.protocol !== 'https:') ||
     origin.username ||
     origin.password ||
     origin.pathname !== '/' ||
     origin.search ||
     origin.hash
   ) {
-    throw new Error('ADMIN_PUBLIC_ORIGIN 必须是无路径、查询、片段或凭据的 HTTPS origin')
+    throw new Error('ADMIN_ALLOWED_ORIGIN 必须是无路径、查询、片段或凭据的 HTTP(S) origin')
   }
 
   return origin.origin
-}
-
-export function getAllowedTailscaleUsers(): ReadonlySet<string> {
-  if (getAdminAccessMode() === 'local') {
-    return new Set()
-  }
-
-  const users = new Set(
-    (process.env.ADMIN_TAILSCALE_ALLOWED_USERS || '')
-      .split(',')
-      .map((user) => user.trim().toLowerCase())
-      .filter(Boolean)
-  )
-
-  if (users.size === 0) {
-    throw new Error('Tailscale 模式必须配置非空用户白名单 ADMIN_TAILSCALE_ALLOWED_USERS')
-  }
-
-  return users
 }
 
 export function getAdminOrigin(requestOrigin: string): string {

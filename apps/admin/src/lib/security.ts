@@ -1,7 +1,6 @@
 import {
   getAdminAccessMode,
-  getAdminPublicOrigin,
-  getAllowedTailscaleUsers
+  getAdminAllowedOrigin
 } from './env'
 import type { AdminIdentity } from './types'
 
@@ -73,45 +72,36 @@ function allowedRequestOrigin(request: Request): string {
   return `${requestUrl.protocol}//${normalizedHost}`
 }
 
-function tailscaleRequestIdentity(request: Request): AdminIdentity {
-  const publicOriginValue = getAdminPublicOrigin()
-  if (!publicOriginValue) {
-    throw new RequestSecurityError('Tailscale 管理端地址未配置')
+function privateRequestIdentity(request: Request): AdminIdentity {
+  const allowedOriginValue = getAdminAllowedOrigin()
+  if (!allowedOriginValue) {
+    throw new RequestSecurityError('私有网络管理端地址未配置')
   }
 
-  const publicOrigin = new URL(publicOriginValue)
+  const allowedOrigin = new URL(allowedOriginValue)
+  const requestUrl = new URL(request.url)
+  if (requestUrl.protocol !== 'http:' && requestUrl.protocol !== 'https:') {
+    throw new RequestSecurityError('私有管理端仅允许 HTTP 或 HTTPS 请求')
+  }
+
   const providedHost = request.headers.get('host')?.trim().toLowerCase()
-  if (!providedHost || providedHost !== publicOrigin.host.toLowerCase()) {
-    throw new RequestSecurityError('请求主机校验失败，请使用配置的 Tailscale 管理端地址')
+  if (
+    !providedHost ||
+    providedHost !== allowedOrigin.host.toLowerCase()
+  ) {
+    throw new RequestSecurityError('请求主机校验失败，请使用配置的私有管理端地址')
   }
 
-  const forwardedProtocols = (request.headers.get('x-forwarded-proto') || '')
-    .split(',')
-    .map((protocol) => protocol.trim().toLowerCase())
-    .filter(Boolean)
-  if (forwardedProtocols.length !== 1 || forwardedProtocols[0] !== 'https') {
-    throw new RequestSecurityError('Tailscale 管理端仅允许经过 HTTPS 代理访问')
-  }
-
-  const login = request.headers.get('tailscale-user-login')?.trim().toLowerCase()
-  if (!login) {
-    throw new RequestSecurityError('请求缺少可信的 Tailscale 身份')
-  }
-
-  if (!getAllowedTailscaleUsers().has(login)) {
-    throw new RequestSecurityError('当前 Tailscale 用户未获授权')
-  }
-
-  return { login, local: false }
+  return { login: '私有网络', local: false }
 }
 
 export function assertLoopbackRequest(request: Request): void {
   allowedRequestOrigin(request)
 }
 
-export function authenticateAdminRequest(request: Request): AdminIdentity {
-  if (getAdminAccessMode() === 'tailscale') {
-    return tailscaleRequestIdentity(request)
+export function authorizeAdminRequest(request: Request): AdminIdentity {
+  if (getAdminAccessMode() === 'private') {
+    return privateRequestIdentity(request)
   }
 
   assertLoopbackRequest(request)
@@ -120,16 +110,16 @@ export function authenticateAdminRequest(request: Request): AdminIdentity {
 
 export function assertSameOrigin(request: Request): void {
   const accessMode = getAdminAccessMode()
-  authenticateAdminRequest(request)
+  authorizeAdminRequest(request)
 
-  const expectedOrigin = accessMode === 'tailscale'
-    ? getAdminPublicOrigin()
+  const expectedOrigin = accessMode === 'private'
+    ? getAdminAllowedOrigin()
     : allowedRequestOrigin(request)
   const providedOrigin = request.headers.get('origin')
   let normalizedProvidedOrigin: string | null = null
 
   if (providedOrigin) {
-    if (accessMode === 'tailscale') {
+    if (accessMode === 'private') {
       try {
         const parsedOrigin = new URL(providedOrigin)
         normalizedProvidedOrigin =

@@ -3,11 +3,11 @@
 仓库包含公开静态站点和私有文章工作台：
 
 - `apps/site`：VitePress 静态站点，由 Vercel 部署到 `www.jiahim.com`。
-- `apps/admin`：默认只在本机运行，也可经 Tailscale Serve 私有访问的三栏 Markdown 编辑器。
+- `apps/admin`：默认只在本机运行，也可在用户自行管理的 Tailscale 私有网络中直接访问的三栏 Markdown 编辑器。
 - `docs`：两端共享的 Markdown 内容和公开资源。
 - `config/site.config.json`：公开站点设置的唯一数据源，由 `packages/site-schema` 迁移、严格校验并提供给两端。
 
-管理端不暴露到公网，也不保存 GitHub Token。它直接读写所在主机的当前 Git worktree，并调用该主机的 Git 与 `gh` 完成受限的提交、推送、Pull Request 和合并流程。Tailscale 部署使用 Serve 注入的身份和应用用户白名单，不提供账号密码登录。
+管理端不保存 GitHub Token。它直接读写所在主机的当前 Git worktree，并调用该主机的 Git 与 `gh` 完成受限的提交、推送、Pull Request 和合并流程。私有网络模式不提供账号密码登录或反向代理，访问控制由用户管理的 Tailscale 网络负责。
 
 设置中心覆盖品牌、作者、栏目、导航、首页、外观、SEO/GEO、页脚与公开集成；秘密值不进入配置，只显示所需环境变量是否存在。栏目新增与归档使用独立事务，普通设置保存不能改变栏目路径、层级或状态。
 

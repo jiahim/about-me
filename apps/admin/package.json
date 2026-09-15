@@ -8,7 +8,7 @@
     "dev": "next dev --hostname 127.0.0.1 --port 3000",
     "prebuild": "pnpm --filter @jiahim/site-schema build",
     "build": "next build",
-    "start": "next start --hostname 127.0.0.1 --port 3000",
+    "start": "node scripts/start.mjs",
     "pretypecheck": "pnpm --filter @jiahim/site-schema build",
     "typecheck": "tsc --noEmit",
     "pretest": "pnpm --filter @jiahim/site-schema build",
