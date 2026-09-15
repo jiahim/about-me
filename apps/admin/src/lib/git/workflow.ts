@@ -2,7 +2,9 @@ import path from 'node:path'
 import { realpath } from 'node:fs/promises'
 
 import { assertArticlePath } from '../content-config'
+import { HttpError } from '../route-utils'
 import { runCommand, runGit } from './command'
+import { publishStartingBranchIssue } from './client-state'
 import { getGitStatus } from './repository'
 import { validateSettingsPublishPaths } from './settings-scope'
 import type {
@@ -103,18 +105,8 @@ export function normalizeCommitMessage(message: string): string {
 export function assertPublishStartingBranch(
   status: Pick<GitStatus, 'branch' | 'defaultBranch' | 'remote' | 'upstream' | 'ahead' | 'behind'>
 ): void {
-  if (!status.branch || status.branch !== status.defaultBranch) {
-    throw new Error(
-      `只能从默认分支开始提交并推送（当前默认分支：${status.defaultBranch}），请先在终端切换后重试。`
-    )
-  }
-  const expectedUpstream = `${status.remote}/${status.defaultBranch}`
-  if (!status.upstream || status.upstream !== expectedUpstream) {
-    throw new Error(`默认分支 upstream 必须是 ${expectedUpstream}，请先在终端修复跟踪关系。`)
-  }
-  if (status.ahead !== 0 || status.behind !== 0) {
-    throw new Error('默认分支未与远端同步，不能开始内容发布。')
-  }
+  const issue = publishStartingBranchIssue(status)
+  if (issue) throw new HttpError(409, issue)
 }
 
 function checkSucceeded(check: PullRequestCheck): boolean {
@@ -567,7 +559,9 @@ export async function publishChanges(input: PublishInput): Promise<PublishWorkfl
     headRefName: pullRequest.headRefName,
     headRefOid: pullRequest.headRefOid,
     mergeStateStatus: pullRequest.mergeStateStatus,
-    message: '已提交并推送，Pull Request 等待预览与合并。'
+    message: status.ahead > 0
+      ? `已提交并推送，Pull Request 等待预览与合并；其中还包含本地 ${status.defaultBranch} 领先远端的 ${status.ahead} 个提交。`
+      : '已提交并推送，Pull Request 等待预览与合并。'
   }
 }
 

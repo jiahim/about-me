@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { HttpError } from '../route-utils'
+
 import {
   assertManagedPullRequest,
   assertMergeLocalState,
@@ -100,13 +102,13 @@ describe('Git publish helpers', () => {
         ...synchronizedDefaultBranch,
         branch: 'codex/editorial-cms'
       })
-    ).toThrow('只能从默认分支开始')
+    ).toThrow('git switch main')
     expect(() =>
       assertPublishStartingBranch({
         ...synchronizedDefaultBranch,
         branch: 'content/old-note'
       })
-    ).toThrow('只能从默认分支开始')
+    ).toThrow('git switch main')
     expect(() => assertPublishStartingBranch({
       ...synchronizedDefaultBranch,
       upstream: undefined
@@ -117,12 +119,25 @@ describe('Git publish helpers', () => {
     })).toThrow(/upstream/)
     expect(() => assertPublishStartingBranch({
       ...synchronizedDefaultBranch,
-      ahead: 1
-    })).toThrow(/远端同步/)
-    expect(() => assertPublishStartingBranch({
+      ahead: 3
+    })).not.toThrow()
+
+    const behind = () => assertPublishStartingBranch({
       ...synchronizedDefaultBranch,
       behind: 1
-    })).toThrow(/远端同步/)
+    })
+    expect(behind).toThrow(HttpError)
+    expect(behind).toThrow(/落后 origin\/main 1 个提交/)
+    expect(behind).toThrow(/git pull --ff-only/)
+
+    const diverged = () => assertPublishStartingBranch({
+      ...synchronizedDefaultBranch,
+      ahead: 2,
+      behind: 1
+    })
+    expect(diverged).toThrow(HttpError)
+    expect(diverged).toThrow(/已经分叉/)
+    expect(diverged).toThrow(/领先 2、落后 1/)
   })
 
   it('avoids a branch name that still exists on the remote', async () => {

@@ -25,6 +25,8 @@ const status: GitStatus = {
 
 it('enables publishing only for a saved article with scoped changes', () => {
   expect(canPublishArticle(status, 'docs/zh/essay/a.md', false, 0)).toBe(true)
+  expect(canPublishArticle({ ...status, ahead: 3 }, 'docs/zh/essay/a.md', false, 0)).toBe(true)
+  expect(canPublishArticle({ ...status, behind: 1 }, 'docs/zh/essay/a.md', false, 0)).toBe(false)
   expect(canPublishArticle(status, 'docs/zh/essay/b.md', false, 0)).toBe(false)
   expect(canPublishArticle(status, 'docs/zh/essay/b.md', false, 1)).toBe(true)
   expect(canPublishArticle(status, 'docs/zh/essay/a.md', true, 0)).toBe(false)
@@ -40,6 +42,9 @@ it('enables publishing only for a saved article with scoped changes', () => {
 
 it('enables settings publishing only for a clean, trusted session scope on the default branch', () => {
   expect(canPublishSettings(status, false, 1)).toBe(true)
+  expect(canPublishSettings({ ...status, ahead: 3 }, false, 1)).toBe(true)
+  expect(canPublishSettings({ ...status, behind: 1 }, false, 1)).toBe(false)
+  expect(canPublishSettings({ ...status, ahead: 2, behind: 1 }, false, 1)).toBe(false)
   expect(canPublishSettings(status, true, 1)).toBe(false)
   expect(canPublishSettings(status, false, 0)).toBe(false)
   expect(canPublishSettings(status, false, 1, 'pre-existing change')).toBe(false)
@@ -53,7 +58,15 @@ it('explains the next settings publishing action in user-facing priority order',
   })
   expect(settingsPublishGuidance({ ...status, branch: 'codex/editorial-cms' }, false, 1)).toEqual({
     tone: 'blocked',
-    message: '暂时无法发布：当前分支为 codex/editorial-cms，设置只允许从 main 提交并推送。'
+    message: '暂时无法发布：当前分支为 codex/editorial-cms，发布只允许从 main 开始。请先在终端运行 git switch main 后刷新。'
+  })
+  expect(settingsPublishGuidance({ ...status, behind: 2 }, false, 1)).toEqual({
+    tone: 'blocked',
+    message: '暂时无法发布：本地 main 落后 origin/main 2 个提交。请先在终端运行 git pull --ff-only origin main；如有本地修改冲突，请先保留修改并人工处理后再刷新。'
+  })
+  expect(settingsPublishGuidance({ ...status, ahead: 3, behind: 1 }, false, 1)).toEqual({
+    tone: 'blocked',
+    message: '暂时无法发布：本地 main 与 origin/main 已经分叉（领先 3、落后 1 个提交）。请先在终端人工完成 rebase 或 merge，确认工作区安全后再刷新。'
   })
   expect(settingsPublishGuidance(status, false, 1, '存在会话外配置改动')).toEqual({
     tone: 'blocked',
@@ -66,5 +79,9 @@ it('explains the next settings publishing action in user-facing priority order',
   expect(settingsPublishGuidance(status, false, 2)).toEqual({
     tone: 'ready',
     message: '已准备 2 个设置文件，可以提交并推送。'
+  })
+  expect(settingsPublishGuidance({ ...status, ahead: 3 }, false, 2)).toEqual({
+    tone: 'action',
+    message: '本地 main 领先 origin/main 3 个提交，仍可继续发布；这些提交会与 2 个设置文件一起进入新 Pull Request。'
   })
 })
