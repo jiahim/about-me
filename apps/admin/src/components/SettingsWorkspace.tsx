@@ -1,6 +1,6 @@
 'use client'
 
-import type { EnvironmentReadiness, SiteConfiguration } from '@jiahim/site-schema'
+import type { EnvironmentReadiness, PublicArticleRecord, SiteConfiguration } from '@jiahim/site-schema'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from 'react'
 
 import { ApiError, clearStoredSettingsSessionId, requestSettingsJson } from '@/lib/settings/client'
@@ -41,6 +41,7 @@ interface SettingsSnapshot {
   normalizedJson: string
   validation: SettingsValidation
   session: SettingsSessionStatus
+  previewArticles?: PublicArticleRecord[]
 }
 
 interface ValidationResponse {
@@ -106,6 +107,7 @@ export const SettingsWorkspace = forwardRef<SettingsWorkspaceHandle, SettingsWor
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
   const [publishedUrl, setPublishedUrl] = useState('')
   const [environmentRequirements, setEnvironmentRequirements] = useState<EnvironmentReadiness[]>([])
+  const [previewArticles, setPreviewArticles] = useState<PublicArticleRecord[]>([])
   const [inspectorTab, setInspectorTab] = useState<SettingsInspectorTab>('preview')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -124,6 +126,7 @@ export const SettingsWorkspace = forwardRef<SettingsWorkspaceHandle, SettingsWor
     try {
       const snapshot = await requestSettingsJson<SettingsSnapshot>('/api/settings')
       setSession(snapshot.session)
+      setPreviewArticles(snapshot.previewArticles ?? [])
       const recovered = readSettingsDraft(localStorage, snapshot.baseHash)
       setBaseHash(snapshot.baseHash)
       setIssues(snapshot.validation.issues)
@@ -348,7 +351,7 @@ export const SettingsWorkspace = forwardRef<SettingsWorkspaceHandle, SettingsWor
         <div ref={settingsPanels} className="settings-main-panels" style={{ '--settings-form-percent': `${formPercent}%` } as CSSProperties}>
           <div className="settings-form-panel"><SettingsFormHost baseHash={baseHash} busy={busy} config={config} environmentRequirements={environmentRequirements} group={group} normalizedJson={`${JSON.stringify(config, null, 2)}\n`} saveDisabled={busy || !dirty} sectionOperationsDisabled={dirty} onChange={change} onSave={() => void save()} onSectionApplied={applySectionResult} /></div>
           <WorkspaceResizeHandle className="settings-resize-handle" label="调整设置表单与预览宽度" max={72} min={38} value={formPercent} valueText={`${Math.round(formPercent)}%`} onReset={() => setFormPercent(58)} onResize={(clientX) => { const bounds = settingsPanels.current?.getBoundingClientRect(); if (bounds?.width) setFormPercent(Math.max(38, Math.min(72, ((clientX - bounds.left) / bounds.width) * 100))) }} onResizeEnd={() => undefined} onResizeStart={() => true} onStep={(delta) => setFormPercent((current) => Math.max(38, Math.min(72, current + delta / 4)))} />
-          <div className="settings-preview-panel"><SettingsInspector config={config} diff={diff} diffFiles={diffFiles} group={group} issues={issues} readiness={environmentRequirements} representativePath={representativePath} siteUrl={siteUrl} tab={inspectorTab} onTabChange={setInspectorTab} /></div>
+          <div className="settings-preview-panel"><SettingsInspector articles={previewArticles} config={config} diff={diff} diffFiles={diffFiles} group={group} issues={issues} readiness={environmentRequirements} representativePath={representativePath} siteUrl={siteUrl} tab={inspectorTab} onTabChange={setInspectorTab} /></div>
         </div>
       </div>}
       {config && <>
@@ -361,7 +364,7 @@ export const SettingsWorkspace = forwardRef<SettingsWorkspaceHandle, SettingsWor
         <Sheet open={mobilePreviewOpen} onOpenChange={setMobilePreviewOpen}>
           <SheetContent className="settings-mobile-sheet settings-mobile-sheet--preview" side="right">
             <SheetHeader><SheetTitle>预览当前模块</SheetTitle><SheetDescription>使用真实 VitePress 页面或对应构建产物检查当前草稿。</SheetDescription></SheetHeader>
-            <SettingsInspector config={config} diff={diff} diffFiles={diffFiles} group={group} issues={issues} readiness={environmentRequirements} representativePath={representativePath} siteUrl={siteUrl} tab={inspectorTab} onTabChange={setInspectorTab} />
+            <SettingsInspector articles={previewArticles} config={config} diff={diff} diffFiles={diffFiles} group={group} issues={issues} readiness={environmentRequirements} representativePath={representativePath} siteUrl={siteUrl} tab={inspectorTab} onTabChange={setInspectorTab} />
           </SheetContent>
         </Sheet>
       </>}

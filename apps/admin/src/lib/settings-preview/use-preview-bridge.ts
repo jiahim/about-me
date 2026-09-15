@@ -4,6 +4,7 @@ import {
   createSettingsPreviewModel,
   parseSettingsPreviewMessage,
   type EnvironmentReadiness,
+  type PublicArticleRecord,
   type SettingsPreviewGroup,
   type SettingsPreviewModel,
   type SiteConfiguration
@@ -15,6 +16,7 @@ import { siteOriginFromUrl } from './origin'
 export type SettingsPreviewConnectionStatus = 'ready' | 'loading' | 'stale' | 'disconnected'
 
 interface UseSettingsPreviewBridgeOptions {
+  articles?: readonly PublicArticleRecord[]
   config: SiteConfiguration
   group: SettingsPreviewGroup
   iframeRef: RefObject<HTMLIFrameElement | null>
@@ -24,18 +26,18 @@ interface UseSettingsPreviewBridgeOptions {
   onNavigate?: (href: string) => void
 }
 
-function project(config: SiteConfiguration, group: SettingsPreviewGroup, readiness: readonly EnvironmentReadiness[]): SettingsPreviewModel | null {
+function project(config: SiteConfiguration, group: SettingsPreviewGroup, readiness: readonly EnvironmentReadiness[], articles: readonly PublicArticleRecord[]): SettingsPreviewModel | null {
   try {
-    return createSettingsPreviewModel(config, group, readiness)
+    return createSettingsPreviewModel(config, group, readiness, articles)
   } catch {
     return null
   }
 }
 
-export function useSettingsPreviewBridge({ config, group, iframeRef, readiness, siteUrl, path, onNavigate }: UseSettingsPreviewBridgeOptions) {
+export function useSettingsPreviewBridge({ articles = [], config, group, iframeRef, readiness, siteUrl, path, onNavigate }: UseSettingsPreviewBridgeOptions) {
   const [sessionId] = useState(() => crypto.randomUUID())
   const [ready, setReady] = useState(false)
-  const initialModel = useMemo(() => project(config, group, readiness), [])
+  const initialModel = useMemo(() => project(config, group, readiness, articles), [])
   const [model, setModel] = useState<SettingsPreviewModel | null>(initialModel)
   const [currentValid, setCurrentValid] = useState(Boolean(initialModel))
   const modelRef = useRef(model)
@@ -58,7 +60,7 @@ export function useSettingsPreviewBridge({ config, group, iframeRef, readiness, 
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const nextModel = project(config, group, readiness)
+      const nextModel = project(config, group, readiness, articles)
       setCurrentValid(Boolean(nextModel))
       if (!nextModel) return
       modelRef.current = nextModel
@@ -71,7 +73,7 @@ export function useSettingsPreviewBridge({ config, group, iframeRef, readiness, 
       }
     }, 150)
     return () => window.clearTimeout(timer)
-  }, [config, group, iframeRef, readiness, ready, sessionId, siteOrigin])
+  }, [articles, config, group, iframeRef, readiness, ready, sessionId, siteOrigin])
 
   useEffect(() => {
     if (!siteOrigin) return

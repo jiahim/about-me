@@ -1,1 +1,1 @@
-export { generateLlmsTxt } from '@jiahim/site-schema'
+export { generateLlmsFullTxt, generateLlmsTxt } from '@jiahim/site-schema'

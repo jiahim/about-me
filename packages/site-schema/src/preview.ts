@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-import { createPersonJsonLd, createWebsiteJsonLd, generateAtomFeed, generateLlmsTxt, generateRobots, generateSitemap } from './public-artifacts.js'
+import { createPersonJsonLd, createWebsiteJsonLd, generateAtomFeed, generateLlmsFullTxt, generateLlmsTxt, generateRobots, generateSitemap } from './public-artifacts.js'
+import type { PublicArticleRecord } from './public-artifacts.js'
 import type { EnvironmentReadiness } from './readiness.js'
 import type { SiteConfiguration } from './schema.js'
 
@@ -53,7 +54,7 @@ export const settingsPreviewModelSchema = z.strictObject({
   footer: z.strictObject({ copyright: z.strictObject({ startYear: z.number(), holder: z.string() }), notice: z.string(), links: z.array(publicLinkSchema), social: z.array(socialLinkSchema) }),
   integrations: z.strictObject({ analytics: z.strictObject({ enabled: z.boolean(), provider: z.enum(['none', 'umami']) }), comments: z.strictObject({ enabled: z.boolean(), provider: z.enum(['none', 'giscus']) }) }),
   readiness: z.strictObject({ analytics: z.boolean(), comments: z.boolean() }),
-  artifacts: z.strictObject({ robots: z.string(), sitemap: z.string(), feed: z.string(), llmsTxt: z.string().nullable(), websiteJsonLd: z.string(), personJsonLd: z.string() })
+  artifacts: z.strictObject({ robots: z.string(), sitemap: z.string(), feed: z.string(), llmsTxt: z.string().nullable(), llmsFullTxt: z.string().nullable(), websiteJsonLd: z.string(), personJsonLd: z.string() })
 })
 
 export type SettingsPreviewModel = z.infer<typeof settingsPreviewModelSchema>
@@ -65,7 +66,8 @@ function ownerReady(readiness: readonly EnvironmentReadiness[], owner: 'analytic
 export function createSettingsPreviewModel(
   config: SiteConfiguration,
   group: SettingsPreviewGroup,
-  readiness: readonly EnvironmentReadiness[]
+  readiness: readonly EnvironmentReadiness[],
+  articles: readonly PublicArticleRecord[] = []
 ): SettingsPreviewModel {
   const sectionsById = new Map(config.sections.map((section) => [section.id, section]))
   const model: SettingsPreviewModel = {
@@ -156,9 +158,10 @@ export function createSettingsPreviewModel(
     },
     artifacts: {
       robots: generateRobots(config),
-      sitemap: generateSitemap(config, []),
-      feed: generateAtomFeed(config, []),
-      llmsTxt: generateLlmsTxt(config, []),
+      sitemap: generateSitemap(config, articles),
+      feed: generateAtomFeed(config, articles),
+      llmsTxt: generateLlmsTxt(config, articles),
+      llmsFullTxt: generateLlmsFullTxt(config, articles),
       websiteJsonLd: JSON.stringify(createWebsiteJsonLd(config), null, 2),
       personJsonLd: JSON.stringify(createPersonJsonLd(config), null, 2)
     }

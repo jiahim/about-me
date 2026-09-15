@@ -1,4 +1,4 @@
-import type { EnvironmentReadiness, SettingsPreviewGroup, SiteConfiguration } from '@jiahim/site-schema'
+import type { EnvironmentReadiness, PublicArticleRecord, SettingsPreviewGroup, SiteConfiguration } from '@jiahim/site-schema'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SettingsPreviewWorkbench } from './settings-preview/SettingsPreviewWorkbench'
@@ -12,6 +12,7 @@ export interface SettingsIssue {
 export type SettingsInspectorTab = 'preview' | 'issues' | 'diff'
 
 interface SettingsInspectorProps {
+  articles?: readonly PublicArticleRecord[]
   config: SiteConfiguration
   diff: string
   diffFiles?: readonly { path: string; kind: 'text' | 'binary'; status: string }[]
@@ -24,7 +25,7 @@ interface SettingsInspectorProps {
   onTabChange: (tab: SettingsInspectorTab) => void
 }
 
-export function SettingsInspector({ config, diff, diffFiles = [], group, issues, readiness, representativePath, siteUrl, tab, onTabChange }: SettingsInspectorProps) {
+export function SettingsInspector({ articles = [], config, diff, diffFiles = [], group, issues, readiness, representativePath, siteUrl, tab, onTabChange }: SettingsInspectorProps) {
   return (
     <aside className="settings-inspector" aria-label="设置检查器">
       <Tabs value={tab} onValueChange={(value) => onTabChange(value as SettingsInspectorTab)}>
@@ -34,7 +35,7 @@ export function SettingsInspector({ config, diff, diffFiles = [], group, issues,
           <TabsTrigger value="diff">Diff</TabsTrigger>
         </TabsList>
         <TabsContent value="preview">
-          <SettingsPreviewWorkbench config={config} group={group} issues={issues} readiness={readiness} representativePath={representativePath} siteUrl={siteUrl} />
+          <SettingsPreviewWorkbench articles={articles} config={config} group={group} issues={issues} readiness={readiness} representativePath={representativePath} siteUrl={siteUrl} />
         </TabsContent>
         <TabsContent value="issues">
           <div className="settings-issues">

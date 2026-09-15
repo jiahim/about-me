@@ -27,6 +27,7 @@ export {
   createWebsiteJsonLd,
   escapeXml,
   generateAtomFeed,
+  generateLlmsFullTxt,
   generateLlmsTxt,
   generateRobots,
   generateSitemap

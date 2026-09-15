@@ -1,6 +1,6 @@
 'use client'
 
-import { createSettingsPreviewModel, type EnvironmentReadiness, type SettingsPreviewGroup, type SiteConfiguration } from '@jiahim/site-schema'
+import { createSettingsPreviewModel, type EnvironmentReadiness, type PublicArticleRecord, type SettingsPreviewGroup, type SiteConfiguration } from '@jiahim/site-schema'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ const GROUP_LABELS: Record<SettingsPreviewGroup, string> = {
 }
 
 interface SettingsPreviewWorkbenchProps {
+  articles?: readonly PublicArticleRecord[]
   config: SiteConfiguration
   group: SettingsPreviewGroup
   issues: readonly unknown[]
@@ -28,17 +29,17 @@ function previewPathForGroup(group: SettingsPreviewGroup, representativePath: st
   return group === 'homepage' || group === 'sections' || group === 'footer-social' ? '/' : representativePath
 }
 
-export function SettingsPreviewWorkbench({ config, group, readiness, siteUrl, representativePath = '/zh/' }: SettingsPreviewWorkbenchProps) {
+export function SettingsPreviewWorkbench({ articles = [], config, group, readiness, siteUrl, representativePath = '/zh/' }: SettingsPreviewWorkbenchProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [path, setPath] = useState(() => previewPathForGroup(group, representativePath))
   const [preferences, setPreferences] = useState<SettingsPreviewPreferences>(() => typeof window === 'undefined' ? { ...DEFAULT_SETTINGS_PREVIEW_PREFERENCES } : readSettingsPreviewPreferences(localStorage))
   const [showPageForArtifact, setShowPageForArtifact] = useState(false)
   const previewGroup = preferences.mode === 'page' ? 'advanced' : group
-  const bridge = useSettingsPreviewBridge({ config, group: previewGroup, iframeRef, readiness, siteUrl, path, onNavigate: setPath })
+  const bridge = useSettingsPreviewBridge({ articles, config, group: previewGroup, iframeRef, readiness, siteUrl, path, onNavigate: setPath })
   const artifactFirst = group === 'seo-geo' || group === 'integrations' || group === 'advanced'
   let artifactModel = bridge.model
   if (!artifactModel) {
-    try { artifactModel = createSettingsPreviewModel(config, group, readiness) } catch { artifactModel = null }
+    try { artifactModel = createSettingsPreviewModel(config, group, readiness, articles) } catch { artifactModel = null }
   }
 
   useEffect(() => { writeSettingsPreviewPreferences(localStorage, preferences) }, [preferences])

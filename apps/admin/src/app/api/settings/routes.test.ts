@@ -14,7 +14,8 @@ const mocks = vi.hoisted(() => ({
   sessionGet: vi.fn(),
   sessionMutate: vi.fn(),
   sessionRegister: vi.fn(),
-  sessionVerifyForDiff: vi.fn()
+  sessionVerifyForDiff: vi.fn(),
+  listPublicArticles: vi.fn()
 }))
 
 vi.mock('@/lib/settings/service', () => ({
@@ -28,6 +29,10 @@ vi.mock('@/lib/settings/service', () => ({
 
 vi.mock('@/lib/git/repository', () => ({
   getSettingsDiff: mocks.diff
+}))
+
+vi.mock('@/lib/content-repository', () => ({
+  getContentRepository: () => ({ listPublicArticles: mocks.listPublicArticles })
 }))
 
 import { GET as getSettings, PUT as putSettings } from './route'
@@ -59,6 +64,7 @@ beforeEach(() => {
   })
   mocks.sessionRegister.mockResolvedValue(session)
   mocks.sessionVerifyForDiff.mockResolvedValue({ paths: ['config/site.config.json'] })
+  mocks.listPublicArticles.mockResolvedValue([])
 })
 
 afterEach(() => vi.unstubAllEnvs())
@@ -71,6 +77,8 @@ describe('设置 API 路由', () => {
     expect(response.status).toBe(200)
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(mocks.read).toHaveBeenCalledOnce()
+    expect(mocks.listPublicArticles).toHaveBeenCalledOnce()
+    expect(await response.json()).toMatchObject({ previewArticles: [] })
   })
 
   it('PUT 在读取正文和保存前拒绝缺失 Origin', async () => {

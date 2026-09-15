@@ -8,20 +8,24 @@ import {
 } from '@/lib/settings/repository'
 import { parseSaveSettingsRequest, readJsonBody, readSettingsSessionId } from '@/lib/settings/requests'
 import { getSettingsRepository, getSettingsSessionStore } from '@/lib/settings/service'
+import { getContentRepository } from '@/lib/content-repository'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     await requireAdmin(request)
-    const snapshot = await getSettingsRepository().read()
+    const [snapshot, previewArticles] = await Promise.all([
+      getSettingsRepository().read(),
+      getContentRepository().listPublicArticles()
+    ])
     const hintedId = readSettingsSessionId(request, false)
     let session
     if (hintedId) {
       try { session = await getSettingsSessionStore().get(hintedId) } catch { session = undefined }
     }
     session ??= await getSettingsSessionStore().create(snapshot.baseHash)
-    return jsonResponse({ ...snapshot, session })
+    return jsonResponse({ ...snapshot, previewArticles, session })
   } catch (error) {
     return errorResponse(error)
   }

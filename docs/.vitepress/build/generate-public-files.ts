@@ -5,7 +5,7 @@ import type { NormalizedSiteConfiguration } from '@jiahim/site-schema'
 
 import type { PublicArticleRecord } from '../generators/articles'
 import { generateAtomFeed } from '../generators/feed'
-import { generateLlmsTxt } from '../generators/llms'
+import { generateLlmsFullTxt, generateLlmsTxt } from '../generators/llms'
 import { generateRobots } from '../generators/robots'
 import { generateSitemap } from '../generators/sitemap'
 import { auditPublicArticles } from './content-audit'
@@ -39,6 +39,7 @@ export async function generatePublicFiles(
     controlledWrite(outDir, 'robots.txt', generateRobots(config)),
     controlledWrite(outDir, 'sitemap.xml', config.seo.sitemap.enabled ? generateSitemap(config, articles) : null),
     controlledWrite(outDir, 'feed.xml', config.seo.feed.enabled ? generateAtomFeed(config, articles) : null),
-    controlledWrite(outDir, 'llms.txt', generateLlmsTxt(config, articles))
+    controlledWrite(outDir, 'llms.txt', generateLlmsTxt(config, articles)),
+    controlledWrite(outDir, 'llms-full.txt', generateLlmsFullTxt(config, articles))
   ])
 }

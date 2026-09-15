@@ -7,6 +7,7 @@ import {
   createPersonJsonLd,
   createWebsiteJsonLd,
   generateAtomFeed,
+  generateLlmsFullTxt,
   generateLlmsTxt,
   generateRobots,
   generateSitemap,
@@ -48,9 +49,14 @@ describe('shared public artifacts', () => {
     expect(feed).toContain('<title>Hello &amp; XML</title>')
     expect(feed).toContain('<summary>A &lt;useful&gt; article</summary>')
     expect(generateLlmsTxt(config, articles)).toBeNull()
+    expect(generateLlmsFullTxt(config, articles)).toBeNull()
     config.geo.llmsTxt.enabled = true
     expect(generateLlmsTxt(config, articles)).toContain(
       '- [Hello & XML](https://jiahim.com/zh/skill/hello): A <useful> article'
+    )
+    expect(generateLlmsTxt(config, articles)).not.toContain('# Hello\n')
+    expect(generateLlmsFullTxt(config, articles)).toContain(
+      '## Hello & XML\n\nSource: https://jiahim.com/zh/skill/hello\n\nA <useful> article\n\n# Hello'
     )
   })
 

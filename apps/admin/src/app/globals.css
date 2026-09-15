@@ -980,8 +980,16 @@ a {
 .settings-preview-status--error { color: var(--destructive); }
 
 .settings-artifact-tabs {
+  align-items: flex-start;
   flex-wrap: wrap;
   height: auto;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.settings-artifact-tabs [data-slot='tabs-trigger'] {
+  flex: 0 0 auto;
+  height: 2rem;
 }
 
 .settings-artifact-preview {

@@ -88,6 +88,21 @@ export function generateLlmsTxt(config: NormalizedSiteConfiguration, articles: r
   return `# ${config.site.name}\n\n> Experimental machine-readable index; llms.txt is not a unified standard.\n\n${config.site.description}\n\n## Articles\n\n${lines.join('\n')}\n`
 }
 
+export function generateLlmsFullTxt(config: NormalizedSiteConfiguration, articles: readonly PublicArticleRecord[]): string | null {
+  if (!config.geo.llmsTxt.enabled) return null
+  const entries = articles.map((article) => {
+    const description = article.description.trim()
+    const body = article.body.trim()
+    return [
+      `## ${article.title}`,
+      `Source: ${absoluteUrl(config.site.canonicalUrl, article.route)}`,
+      description,
+      body
+    ].filter(Boolean).join('\n\n')
+  })
+  return `# ${config.site.name}\n\n> Experimental full-text companion to llms.txt; llms.txt is not a unified standard.\n\n${config.site.description}\n\n## Articles\n\n${entries.join('\n\n---\n\n')}\n`
+}
+
 export function createWebsiteJsonLd(config: NormalizedSiteConfiguration): JsonLd {
   return { '@context': 'https://schema.org', '@type': 'WebSite', name: config.site.name, description: config.site.description, url: config.site.canonicalUrl }
 }

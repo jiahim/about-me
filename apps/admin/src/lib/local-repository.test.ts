@@ -66,6 +66,31 @@ describe('LocalContentRepository 动态栏目', () => {
     ).toBe('book-vue')
   })
 
+  it('只把公开文章正文提供给生成产物', async () => {
+    const repository = await temporaryDirectory('site-public-articles-')
+    await createRepositoryDirectories(repository)
+    await writeFile(path.join(repository, 'docs/zh/skill/public.md'), '---\ntitle: Public\ndescription: Summary\ndate: 2026-09-15\n---\n# Public\n\nVisible body\n')
+    await writeFile(path.join(repository, 'docs/zh/skill/draft.md'), '---\ntitle: Draft\ndraft: true\n---\n# Draft\n\nSecret draft\n')
+    const config = createDefaultSiteConfiguration()
+    config.sections.find((section) => section.id === 'book')!.status = 'hidden'
+    config.sections.find((section) => section.id === 'book')!.navigation.header = false
+    config.navigation.find((item) => item.type === 'section' && item.sectionId === 'book')!.visible = false
+    await writeFile(path.join(repository, 'docs/zh/book/hidden.md'), '# Hidden\n\nHidden body\n')
+    const content = new LocalContentRepository(repository, parseSiteConfiguration(config))
+
+    await expect(content.listPublicArticles()).resolves.toEqual([
+      expect.objectContaining({
+        relativePath: 'zh/skill/public.md',
+        route: '/zh/skill/public',
+        title: 'Public',
+        description: 'Summary',
+        body: '# Public\n\nVisible body',
+        publishedAt: '2026-09-15',
+        sectionName: '技术'
+      })
+    ])
+  })
+
   it('拒绝配置栏目目录通过符号链接越出仓库', async () => {
     const repository = await temporaryDirectory('site-symlink-repository-')
     const outside = await temporaryDirectory('site-symlink-outside-')
