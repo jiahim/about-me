@@ -38,7 +38,7 @@ pnpm build:admin
 pnpm build:site
 ```
 
-生产构建还会生成 robots、sitemap、Atom feed、canonical、Open Graph 与结构化数据；实验性 `llms.txt` 默认关闭，可在设置中心显式启用。
+生产构建还会生成 robots、sitemap、Atom feed、canonical、Open Graph 与结构化数据；实验性 `llms.txt` 和 `llms-full.txt` 默认关闭，可在设置中心通过同一开关显式启用。前者提供公开文章索引，后者包含公开文章的完整 Markdown 正文。
 
 编辑与安全发布说明见 [`apps/admin/README.md`](apps/admin/README.md)，产品和技术基线见 [`specs/editorial-cms/`](specs/editorial-cms/)。
 

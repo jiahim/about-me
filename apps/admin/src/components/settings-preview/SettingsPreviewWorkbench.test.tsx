@@ -39,8 +39,13 @@ describe('SettingsPreviewWorkbench', () => {
   })
 
   it('shows generated artifacts for SEO/GEO without loading integrations', () => {
-    render(<SettingsPreviewWorkbench config={createDefaultSiteConfiguration()} group="seo-geo" issues={[]} readiness={[]} siteUrl="https://jiahim.com" />)
+    const config = createDefaultSiteConfiguration()
+    config.geo.llmsTxt.enabled = true
+    render(<SettingsPreviewWorkbench config={config} group="seo-geo" issues={[]} readiness={[]} siteUrl="https://jiahim.com" articles={[{
+      relativePath: 'zh/skill/hello.md', route: '/zh/skill/hello', title: 'Hello', description: 'Summary', body: 'Full body', publishedAt: '2026-09-15', author: 'Jia him', sectionName: '技术'
+    }]} />)
     expect(screen.getByRole('tab', { name: 'robots.txt' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'llms-full.txt' })).toBeInTheDocument()
     expect(screen.getByText(/User-agent/)).toBeInTheDocument()
   })
 })

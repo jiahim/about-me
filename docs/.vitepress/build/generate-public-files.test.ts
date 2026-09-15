@@ -11,7 +11,7 @@ const roots: string[] = []
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))))
 
 describe('generatePublicFiles', () => {
-  it('writes controlled discovery files and omits llms.txt by default', async () => {
+  it('writes controlled discovery files and omits llms files by default', async () => {
     const outDir = await mkdtemp(path.join(os.tmpdir(), 'public-output-'))
     roots.push(outDir)
     const config = createDefaultSiteConfiguration()
@@ -20,6 +20,24 @@ describe('generatePublicFiles', () => {
     expect(await readdir(outDir)).toEqual(expect.arrayContaining(['robots.txt', 'sitemap.xml', 'feed.xml']))
     expect(await readFile(path.join(outDir, 'robots.txt'), 'utf8')).toContain('OAI-SearchBot')
     await expect(readFile(path.join(outDir, 'llms.txt'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(readFile(path.join(outDir, 'llms-full.txt'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('writes the llms index and full article bodies when enabled', async () => {
+    const outDir = await mkdtemp(path.join(os.tmpdir(), 'public-output-llms-'))
+    roots.push(outDir)
+    const config = createDefaultSiteConfiguration()
+    config.geo.llmsTxt.enabled = true
+    config.geo.contentSignals.requirePublishedAt = false
+    const article = {
+      relativePath: 'zh/skill/test.md', route: '/zh/skill/test', title: 'Test',
+      description: 'Summary', body: 'Full article body', publishedAt: '', author: 'Jia him', sectionName: '技术'
+    }
+
+    await generatePublicFiles(config, [article], outDir, { reportWarning: () => undefined })
+
+    expect(await readFile(path.join(outDir, 'llms.txt'), 'utf8')).toContain('[Test](https://jiahim.com/zh/skill/test)')
+    expect(await readFile(path.join(outDir, 'llms-full.txt'), 'utf8')).toContain('Full article body')
   })
 
   it('blocks error findings and reports warning findings through the injected reporter', async () => {

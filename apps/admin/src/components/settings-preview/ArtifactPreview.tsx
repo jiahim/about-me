@@ -11,6 +11,7 @@ export function ArtifactPreview({ model }: ArtifactPreviewProps) {
     ['sitemap', 'sitemap.xml', model.artifacts.sitemap],
     ['feed', 'Feed', model.artifacts.feed],
     ['llms', 'llms.txt', model.artifacts.llmsTxt ?? '当前未生成 llms.txt'],
+    ['llms-full', 'llms-full.txt', model.artifacts.llmsFullTxt ?? '当前未生成 llms-full.txt'],
     ['website', 'Website JSON-LD', model.artifacts.websiteJsonLd],
     ['person', 'Person JSON-LD', model.artifacts.personJsonLd]
   ] as const

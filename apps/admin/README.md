@@ -45,7 +45,7 @@ NEXT_PUBLIC_SITE_URL=https://www.jiahim.com
 - 站点设置使用 Schema v2；读取旧 v1 配置或草稿会先确定性迁移，保存只写 v2。迁移失败的旧草稿保留供人工恢复。
 - 栏目向导用事务同时更新 `config/site.config.json` 与栏目首页；归档前显示文章数，归档不删除或移动文章。
 - 品牌资源只写入 `docs/public/images/site/`，并在保存配置前保留为设置草稿。
-- 每个设置模块都可在右侧预览真实 VitePress 页面；默认聚焦当前模块，也可切换完整页面、桌面/平板/手机宽度、75%/100%/125%/适应缩放，以及全屏检查。SEO、Feed、robots 和 `llms.txt` 等非视觉配置显示确定性产物预览。
+- 每个设置模块都可在右侧预览真实 VitePress 页面；默认聚焦当前模块，也可切换完整页面、桌面/平板/手机宽度、75%/100%/125%/适应缩放，以及全屏检查。SEO、Feed、robots、`llms.txt` 和 `llms-full.txt` 等非视觉配置显示确定性产物预览。
 - 未保存内容会写入浏览器本地恢复副本；成功保存后自动清除。
 - “保存设置”只原子写入本地文件，不会自动提交或推送。保存后右侧自动显示当前设置会话的精确 Diff，顶部“提交设置并推送”是独立的下一步。
 
@@ -82,7 +82,7 @@ NEXT_PUBLIC_SITE_URL=https://www.jiahim.com
 
 ## 公开 SEO / GEO 产物
 
-公开站点构建会从同一份配置和可见文章生成 `robots.txt`、`sitemap.xml`、`feed.xml`、canonical、Open Graph 和 JSON-LD。AI 搜索发现与模型训练权限分别配置。`llms.txt` 是实验性、非统一标准的可选输出，默认关闭。
+公开站点构建会从同一份配置和可见文章生成 `robots.txt`、`sitemap.xml`、`feed.xml`、canonical、Open Graph 和 JSON-LD。AI 搜索发现与模型训练权限分别配置。`llms.txt` 和 `llms-full.txt` 是实验性、非统一标准的可选输出，默认关闭；启用后分别生成公开文章索引和包含完整 Markdown 正文的版本，草稿、隐藏及归档栏目不会被纳入。
 
 内容完整性开关同时控制编辑器提示和公开构建门禁：作者与发布时间缺失属于阻断错误，更新时间、图片替代文本和站外引用缺失属于显式警告。启用的公开集成只检查所声明环境变量是否存在，不读取或返回秘密值。
 

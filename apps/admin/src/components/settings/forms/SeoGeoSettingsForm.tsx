@@ -23,7 +23,7 @@ export function SeoGeoSettingsForm({ config, onChange }: { config: SiteConfigura
     <Toggle label="允许模型训练" checked={config.geo.crawlers.GPTBot.allow} onChange={(value) => onChange(['geo', 'crawlers', 'GPTBot', 'allow'], value)} />
     <Toggle label="允许 Googlebot 发现" checked={config.geo.crawlers.Googlebot.allow} onChange={(value) => onChange(['geo', 'crawlers', 'Googlebot', 'allow'], value)} />
     <Toggle label="允许 Google 扩展训练" checked={config.geo.crawlers.Google_Extended.allow} onChange={(value) => onChange(['geo', 'crawlers', 'Google_Extended', 'allow'], value)} />
-    <Toggle label="实验性 llms.txt" checked={config.geo.llmsTxt.enabled} onChange={(value) => onChange(['geo', 'llmsTxt', 'enabled'], value)} />
+    <Toggle label="实验性 llms.txt / llms-full.txt" checked={config.geo.llmsTxt.enabled} onChange={(value) => onChange(['geo', 'llmsTxt', 'enabled'], value)} />
     {Object.entries(config.geo.contentSignals).map(([name, checked]) => <Toggle key={name} label={`内容完整性：${name}`} checked={checked} onChange={(value) => onChange(['geo', 'contentSignals', name], value)} />)}
   </>
 }

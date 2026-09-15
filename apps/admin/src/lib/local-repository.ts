@@ -12,7 +12,8 @@ import {
 } from 'node:fs/promises'
 import { randomBytes } from 'node:crypto'
 import path from 'node:path'
-import type { NormalizedSiteConfiguration } from '@jiahim/site-schema'
+import type { NormalizedSiteConfiguration, PublicArticleRecord } from '@jiahim/site-schema'
+import matter from 'gray-matter'
 
 import { parseArticle, serializeArticle, summarizeArticle } from './article-format'
 import { articleFingerprint } from './editor/drafts'
@@ -43,6 +44,17 @@ function sortArticles(articles: ArticleSummary[]): ArticleSummary[] {
     const byDate = right.date.localeCompare(left.date)
     return byDate || left.title.localeCompare(right.title, 'zh-CN')
   })
+}
+
+function isPublicSection(config: NormalizedSiteConfiguration, sectionId: string): boolean {
+  let current = config.sections.find((section) => section.id === sectionId)
+  while (current) {
+    if (current.status !== 'active' || !config.locales[current.locale]?.enabled) return false
+    current = current.parentId
+      ? config.sections.find((candidate) => candidate.id === current?.parentId)
+      : undefined
+  }
+  return true
 }
 
 async function atomicWrite(target: string, contents: string | Uint8Array, createOnly = false): Promise<void> {
@@ -175,6 +187,32 @@ export class LocalContentRepository implements ContentRepository {
   }
 
   async listArticles(): Promise<ArticleSummary[]> {
+    const articles = await this.readArticles()
+    return sortArticles(articles.map(({ article }) => summarizeArticle(article)))
+  }
+
+  async listPublicArticles(): Promise<PublicArticleRecord[]> {
+    const articles = await this.readArticles()
+    return articles
+      .filter(({ article }) => !article.draft && isPublicSection(this.config, article.category))
+      .map(({ article, raw }) => {
+        const category = getCategoryForPath(article.path, this.config)!
+        return {
+          relativePath: article.path.replace(/^docs\//, ''),
+          route: `/${article.path.replace(/^docs\//, '').replace(/\.md$/, '')}`,
+          title: article.title,
+          description: article.description,
+          body: matter(raw).content.trim(),
+          publishedAt: article.date,
+          ...(article.updatedAt ? { updatedAt: article.updatedAt } : {}),
+          author: article.author || this.config.author.name,
+          sectionName: category.label
+        }
+      })
+      .sort((left, right) => right.publishedAt.localeCompare(left.publishedAt) || left.route.localeCompare(right.route))
+  }
+
+  private async readArticles(): Promise<Array<{ article: Article; raw: string }>> {
     const visibleCategories = categoryDefinitions(this.config)
     const visibleCategoryIds = new Set(
       visibleCategories.map((category) => category.id)
@@ -207,17 +245,16 @@ export class LocalContentRepository implements ContentRepository {
       )
       return Boolean(section && visibleCategoryIds.has(section.id))
     })
-    const articles = await Promise.all(
+    return Promise.all(
       visiblePaths.map(async (absolutePath) => {
         const repositoryPath = path.relative(this.repositoryRoot, absolutePath).split(path.sep).join('/')
         const raw = await readFile(absolutePath, 'utf8')
-        return summarizeArticle(
-          parseArticle(raw, repositoryPath, { draft: false }, this.config)
-        )
+        return {
+          article: parseArticle(raw, repositoryPath, { draft: matter(raw).data.draft === true }, this.config),
+          raw
+        }
       })
     )
-
-    return sortArticles(articles)
   }
 
   async getArticle(articlePath: string): Promise<Article> {

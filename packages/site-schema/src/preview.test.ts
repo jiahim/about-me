@@ -45,6 +45,25 @@ describe('settings preview protocol', () => {
     expect(model.sections[0]).not.toHaveProperty('directory')
   })
 
+  it('generates llms previews from public article records', () => {
+    const config = createDefaultSiteConfiguration()
+    config.geo.llmsTxt.enabled = true
+    const model = createSettingsPreviewModel(config, 'seo-geo', [], [{
+      relativePath: 'zh/skill/hello.md',
+      route: '/zh/skill/hello',
+      title: 'Hello',
+      description: 'Summary',
+      body: 'Complete body',
+      publishedAt: '2026-09-15',
+      author: 'Jia him',
+      sectionName: '技术'
+    }])
+
+    expect(model.artifacts.llmsTxt).toContain('[Hello](https://jiahim.com/zh/skill/hello)')
+    expect(model.artifacts.llmsFullTxt).toContain('Complete body')
+    expect(JSON.stringify(model)).not.toContain('zh/skill/hello.md')
+  })
+
   it('strictly parses update, ready, and navigation messages', () => {
     const model = createSettingsPreviewModel(createDefaultSiteConfiguration(), 'branding', [])
     expect(parseSettingsPreviewMessage({

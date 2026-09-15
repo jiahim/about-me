@@ -1,4 +1,5 @@
 import { LocalContentRepository } from './local-repository'
+import type { PublicArticleRecord } from '@jiahim/site-schema'
 import type {
   Article,
   ArticleInput,
@@ -17,6 +18,7 @@ export interface MediaUpload {
 
 export interface ContentRepository {
   listArticles(): Promise<ArticleSummary[]>
+  listPublicArticles(): Promise<PublicArticleRecord[]>
   getArticle(articlePath: string): Promise<Article>
   createArticle(input: NewArticleInput): Promise<SaveResult>
   saveArticle(input: ArticleInput): Promise<SaveResult>
