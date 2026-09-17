@@ -299,11 +299,6 @@
         "newTab": true
       },
       {
-        "label": "近期在做：自动同步翻译 OpenAI API 中文文档",
-        "href": "https://www.openai-api-chinese.com/",
-        "newTab": true
-      },
-      {
         "label": "网站数据",
         "href": "/my-site",
         "newTab": false
